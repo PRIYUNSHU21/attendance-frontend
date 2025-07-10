@@ -19,9 +19,12 @@ void main() {
 
         // Providers with dependencies
         // AdminProvider depends on AuthProvider for session invalidation
-        ProxyProvider<AuthProvider, AdminProvider>(
-          update: (_, authProvider, __) =>
-              AdminProvider(authProvider: authProvider),
+        ChangeNotifierProxyProvider<AuthProvider, AdminProvider>(
+          create: (_) => AdminProvider(),
+          update: (_, authProvider, previousAdminProvider) =>
+              previousAdminProvider
+                ?..authProvider =
+                    authProvider ?? AdminProvider(authProvider: authProvider),
         ),
       ],
       child: const AttendanceApp(),
