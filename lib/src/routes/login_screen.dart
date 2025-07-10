@@ -78,10 +78,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           size: 64,
                           color: AppTheme.primaryColor,
                         ).animate().scale(
-                              duration: AppTheme.animDurationMedium,
-                              curve: Curves.easeOutBack,
-                              delay: 200.ms,
-                            ),
+                          duration: AppTheme.animDurationMedium,
+                          curve: Curves.easeOutBack,
+                          delay: 200.ms,
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'Welcome Back',
@@ -89,10 +89,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: AppTheme.primaryColor,
                           ),
                         ).animate().fadeIn(
-                              duration: AppTheme.animDurationMedium,
-                              curve: Curves.easeOut,
-                              delay: 300.ms,
-                            ),
+                          duration: AppTheme.animDurationMedium,
+                          curve: Curves.easeOut,
+                          delay: 300.ms,
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           'Sign in to continue',
@@ -100,14 +100,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: AppTheme.textMedium,
                           ),
                         ).animate().fadeIn(
-                              duration: AppTheme.animDurationMedium,
-                              curve: Curves.easeOut,
-                              delay: 400.ms,
-                            ),
+                          duration: AppTheme.animDurationMedium,
+                          curve: Curves.easeOut,
+                          delay: 400.ms,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 40),
-                    
+
                     // Login Card
                     AnimatedCard(
                       padding: const EdgeInsets.all(24),
@@ -148,23 +148,20 @@ class _LoginScreenState extends State<LoginScreen> {
                                 : 'Please enter a valid email address',
                             onSaved: (v) => _email = v ?? '',
                           ).animate().custom(
-                                duration: AppTheme.animDurationMedium,
-                                delay: 500.ms,
-                                begin: 0,
-                                end: 1,
-                                builder: (context, value, child) {
-                                  return Transform.translate(
-                                    offset: Offset(0, 20 * (1 - value)),
-                                    child: Opacity(
-                                      opacity: value,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                              ),
-                              
+                            duration: AppTheme.animDurationMedium,
+                            delay: 500.ms,
+                            begin: 0,
+                            end: 1,
+                            builder: (context, value, child) {
+                              return Transform.translate(
+                                offset: Offset(0, 20 * (1 - value)),
+                                child: Opacity(opacity: value, child: child),
+                              );
+                            },
+                          ),
+
                           const SizedBox(height: 20),
-                          
+
                           // Password Field
                           TextFormField(
                             decoration: InputDecoration(
@@ -210,25 +207,22 @@ class _LoginScreenState extends State<LoginScreen> {
                                 : 'Password must be at least 6 characters',
                             onSaved: (v) => _password = v ?? '',
                           ).animate().custom(
-                                duration: AppTheme.animDurationMedium,
-                                delay: 600.ms,
-                                begin: 0,
-                                end: 1,
-                                builder: (context, value, child) {
-                                  return Transform.translate(
-                                    offset: Offset(0, 20 * (1 - value)),
-                                    child: Opacity(
-                                      opacity: value,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                              ),
+                            duration: AppTheme.animDurationMedium,
+                            delay: 600.ms,
+                            begin: 0,
+                            end: 1,
+                            builder: (context, value, child) {
+                              return Transform.translate(
+                                offset: Offset(0, 20 * (1 - value)),
+                                child: Opacity(opacity: value, child: child),
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 20),
-                    
+
                     // Error Message
                     if (_error != null)
                       Container(
@@ -259,17 +253,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                       ).animate().shake(
-                            duration: 300.ms,
-                            curve: Curves.easeInOut,
-                          ),
-                          
+                        duration: 300.ms,
+                        curve: Curves.easeInOut,
+                      ),
+
                     const SizedBox(height: 24),
-                    
+
                     // Login Button
                     _loading
-                        ? const Center(
-                            child: CircularProgressIndicator(),
-                          )
+                        ? const Center(child: CircularProgressIndicator())
                         : ElevatedButton(
                             onPressed: _login,
                             style: ElevatedButton.styleFrom(
@@ -289,22 +281,19 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ).animate().custom(
-                                duration: AppTheme.animDurationMedium,
-                                delay: 700.ms,
-                                begin: 0,
-                                end: 1,
-                                builder: (context, value, child) {
-                                  return Transform.translate(
-                                    offset: Offset(0, 20 * (1 - value)),
-                                    child: Opacity(
-                                      opacity: value,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                              ),
+                            duration: AppTheme.animDurationMedium,
+                            delay: 700.ms,
+                            begin: 0,
+                            end: 1,
+                            builder: (context, value, child) {
+                              return Transform.translate(
+                                offset: Offset(0, 20 * (1 - value)),
+                                child: Opacity(opacity: value, child: child),
+                              );
+                            },
+                          ),
                     const SizedBox(height: 16),
-                    
+
                     // Register Link
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -330,10 +319,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ).animate().fadeIn(
-                          duration: AppTheme.animDurationMedium,
-                          delay: 800.ms,
-                        ),
-                        
+                      duration: AppTheme.animDurationMedium,
+                      delay: 800.ms,
+                    ),
+
                     const SizedBox(height: 24),
                     const Divider(),
                     const SizedBox(height: 24),
@@ -404,10 +393,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                     ).animate().fadeIn(
-                          duration: AppTheme.animDurationMedium,
-                          delay: 900.ms,
-                        ),
-                ],
+                      duration: AppTheme.animDurationMedium,
+                      delay: 900.ms,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
