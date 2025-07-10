@@ -80,17 +80,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // Header Section
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: Icon(
-                        Icons.arrow_back,
-                        color: AppTheme.textDark,
-                      ),
+                      icon: Icon(Icons.arrow_back, color: AppTheme.textDark),
                       alignment: Alignment.centerLeft,
                       padding: EdgeInsets.zero,
                     ).animate().fadeIn(
-                          duration: AppTheme.animDurationFast,
-                          delay: 100.ms,
-                        ),
-                        
+                      duration: AppTheme.animDurationFast,
+                      delay: 100.ms,
+                    ),
+
                     // Title and Subtitle
                     Center(
                       child: Column(
@@ -100,10 +97,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             size: 64,
                             color: AppTheme.primaryColor,
                           ).animate().scale(
-                                duration: AppTheme.animDurationMedium,
-                                curve: Curves.easeOutBack,
-                                delay: 200.ms,
-                              ),
+                            duration: AppTheme.animDurationMedium,
+                            curve: Curves.easeOutBack,
+                            delay: 200.ms,
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             'Create Account',
@@ -111,10 +108,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               color: AppTheme.primaryColor,
                             ),
                           ).animate().fadeIn(
-                                duration: AppTheme.animDurationMedium,
-                                curve: Curves.easeOut,
-                                delay: 300.ms,
-                              ),
+                            duration: AppTheme.animDurationMedium,
+                            curve: Curves.easeOut,
+                            delay: 300.ms,
+                          ),
                           const SizedBox(height: 8),
                           Text(
                             'Join our attendance platform',
@@ -122,16 +119,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               color: AppTheme.textMedium,
                             ),
                           ).animate().fadeIn(
-                                duration: AppTheme.animDurationMedium,
-                                curve: Curves.easeOut,
-                                delay: 400.ms,
-                              ),
+                            duration: AppTheme.animDurationMedium,
+                            curve: Curves.easeOut,
+                            delay: 400.ms,
+                          ),
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     // Registration Form Card
                     AnimatedCard(
                       padding: const EdgeInsets.all(24),
@@ -171,23 +168,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 : 'Please enter your name',
                             onSaved: (v) => _name = v ?? '',
                           ).animate().custom(
-                                duration: AppTheme.animDurationMedium,
-                                delay: 500.ms,
-                                begin: 0,
-                                end: 1,
-                                builder: (context, value, child) {
-                                  return Transform.translate(
-                                    offset: Offset(0, 20 * (1 - value)),
-                                    child: Opacity(
-                                      opacity: value,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                              ),
-                          
+                            duration: AppTheme.animDurationMedium,
+                            delay: 500.ms,
+                            begin: 0,
+                            end: 1,
+                            builder: (context, value, child) {
+                              return Transform.translate(
+                                offset: Offset(0, 20 * (1 - value)),
+                                child: Opacity(opacity: value, child: child),
+                              );
+                            },
+                          ),
+
                           const SizedBox(height: 20),
-                          
+
                           // Email Field
                           TextFormField(
                             decoration: InputDecoration(
@@ -220,23 +214,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 : 'Please enter a valid email address',
                             onSaved: (v) => _email = v ?? '',
                           ).animate().custom(
-                                duration: AppTheme.animDurationMedium,
-                                delay: 600.ms,
-                                begin: 0,
-                                end: 1,
-                                builder: (context, value, child) {
-                                  return Transform.translate(
-                                    offset: Offset(0, 20 * (1 - value)),
-                                    child: Opacity(
-                                      opacity: value,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                              ),
-                          
+                            duration: AppTheme.animDurationMedium,
+                            delay: 600.ms,
+                            begin: 0,
+                            end: 1,
+                            builder: (context, value, child) {
+                              return Transform.translate(
+                                offset: Offset(0, 20 * (1 - value)),
+                                child: Opacity(opacity: value, child: child),
+                              );
+                            },
+                          ),
+
                           const SizedBox(height: 20),
-                          
+
                           // Password Field
                           TextFormField(
                             decoration: InputDecoration(
@@ -282,23 +273,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 : 'Password must be at least 6 characters',
                             onSaved: (v) => _password = v ?? '',
                           ).animate().custom(
-                                duration: AppTheme.animDurationMedium,
-                                delay: 700.ms,
-                                begin: 0,
-                                end: 1,
-                                builder: (context, value, child) {
-                                  return Transform.translate(
-                                    offset: Offset(0, 20 * (1 - value)),
-                                    child: Opacity(
-                                      opacity: value,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                              ),
-                              
+                            duration: AppTheme.animDurationMedium,
+                            delay: 700.ms,
+                            begin: 0,
+                            end: 1,
+                            builder: (context, value, child) {
+                              return Transform.translate(
+                                offset: Offset(0, 20 * (1 - value)),
+                                child: Opacity(opacity: value, child: child),
+                              );
+                            },
+                          ),
+
                           const SizedBox(height: 20),
-                          
+
                           // Role Dropdown
                           DropdownButtonFormField<String>(
                             value: _role,
@@ -335,25 +323,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 child: Text('Teacher'),
                               ),
                             ],
-                            onChanged: (v) => setState(() => _role = v ?? 'student'),
+                            onChanged: (v) =>
+                                setState(() => _role = v ?? 'student'),
                           ).animate().custom(
-                                duration: AppTheme.animDurationMedium,
-                                delay: 800.ms,
-                                begin: 0,
-                                end: 1,
-                                builder: (context, value, child) {
-                                  return Transform.translate(
-                                    offset: Offset(0, 20 * (1 - value)),
-                                    child: Opacity(
-                                      opacity: value,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                              ),
-                              
+                            duration: AppTheme.animDurationMedium,
+                            delay: 800.ms,
+                            begin: 0,
+                            end: 1,
+                            builder: (context, value, child) {
+                              return Transform.translate(
+                                offset: Offset(0, 20 * (1 - value)),
+                                child: Opacity(opacity: value, child: child),
+                              );
+                            },
+                          ),
+
                           const SizedBox(height: 20),
-                          
+
                           // Organization Dropdown
                           DropdownButtonFormField<String>(
                             value: _orgId,
@@ -396,26 +382,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ],
                             onChanged: (v) => setState(() => _orgId = v ?? '1'),
                           ).animate().custom(
-                                duration: AppTheme.animDurationMedium,
-                                delay: 900.ms,
-                                begin: 0,
-                                end: 1,
-                                builder: (context, value, child) {
-                                  return Transform.translate(
-                                    offset: Offset(0, 20 * (1 - value)),
-                                    child: Opacity(
-                                      opacity: value,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                              ),
+                            duration: AppTheme.animDurationMedium,
+                            delay: 900.ms,
+                            begin: 0,
+                            end: 1,
+                            builder: (context, value, child) {
+                              return Transform.translate(
+                                offset: Offset(0, 20 * (1 - value)),
+                                child: Opacity(opacity: value, child: child),
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Error Message
                     if (_error != null)
                       Container(
@@ -446,17 +429,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ],
                         ),
                       ).animate().shake(
-                            duration: 300.ms,
-                            curve: Curves.easeInOut,
-                          ),
-                          
+                        duration: 300.ms,
+                        curve: Curves.easeInOut,
+                      ),
+
                     const SizedBox(height: 24),
-                    
+
                     // Register Button
                     _loading
-                        ? const Center(
-                            child: CircularProgressIndicator(),
-                          )
+                        ? const Center(child: CircularProgressIndicator())
                         : ElevatedButton(
                             onPressed: _register,
                             style: ElevatedButton.styleFrom(
@@ -476,23 +457,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ),
                           ).animate().custom(
-                                duration: AppTheme.animDurationMedium,
-                                delay: 1000.ms,
-                                begin: 0,
-                                end: 1,
-                                builder: (context, value, child) {
-                                  return Transform.translate(
-                                    offset: Offset(0, 20 * (1 - value)),
-                                    child: Opacity(
-                                      opacity: value,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                              ),
-                              
+                            duration: AppTheme.animDurationMedium,
+                            delay: 1000.ms,
+                            begin: 0,
+                            end: 1,
+                            builder: (context, value, child) {
+                              return Transform.translate(
+                                offset: Offset(0, 20 * (1 - value)),
+                                child: Opacity(opacity: value, child: child),
+                              );
+                            },
+                          ),
+
                     const SizedBox(height: 16),
-                    
+
                     // Login Link
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -518,10 +496,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ],
                     ).animate().fadeIn(
-                          duration: AppTheme.animDurationMedium,
-                          delay: 1100.ms,
-                        ),
-              ],
+                      duration: AppTheme.animDurationMedium,
+                      delay: 1100.ms,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
