@@ -22,9 +22,7 @@ void main() {
         ChangeNotifierProxyProvider<AuthProvider, AdminProvider>(
           create: (_) => AdminProvider(),
           update: (_, authProvider, previousAdminProvider) =>
-              previousAdminProvider
-                ?..authProvider =
-                    authProvider ?? AdminProvider(authProvider: authProvider),
+              AdminProvider(authProvider: authProvider),
         ),
       ],
       child: const AttendanceApp(),
