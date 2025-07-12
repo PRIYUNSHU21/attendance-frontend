@@ -38,10 +38,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() {
       _loadingOrgs = true;
     });
-    
+
     final adminProvider = Provider.of<AdminProvider>(context, listen: false);
     await adminProvider.fetchPublicOrganizations();
-    
+
     setState(() {
       _organizations = adminProvider.publicOrganizations;
       _loadingOrgs = false;
@@ -51,6 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     });
   }
+
   void _register() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
@@ -77,17 +78,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
     }
   }
-        // Organization Dropdown
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppTheme.primaryColor.withOpacity(0.05),
-              AppTheme.background,
-            ],
-          ),
-        ),
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -160,9 +151,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ],
                       ),
                     ),
-
                     const SizedBox(height: 32),
-
                     // Registration Form Card
                     AnimatedCard(
                       padding: const EdgeInsets.all(24),
@@ -213,9 +202,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               );
                             },
                           ),
-
                           const SizedBox(height: 20),
-
                           // Email Field
                           TextFormField(
                             decoration: InputDecoration(
@@ -376,92 +363,100 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                           // Organization Dropdown
                           _loadingOrgs
-                          ? Container(
-                              height: 60,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                border: Border.all(color: AppTheme.dividerColor),
-                                borderRadius: AppTheme.borderRadiusMedium,
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                              ? Container(
+                                  height: 60,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: AppTheme.dividerColor,
+                                    ),
+                                    borderRadius: AppTheme.borderRadiusMedium,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: AppTheme.primaryColor,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        'Loading organizations...',
+                                        style: TextStyle(
+                                          color: AppTheme.textMedium,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : DropdownButtonFormField<String>(
+                                  value: _organizations.isNotEmpty
+                                      ? _orgId
+                                      : null,
+                                  decoration: InputDecoration(
+                                    labelText: 'Organization',
+                                    prefixIcon: Icon(
+                                      Icons.business_outlined,
                                       color: AppTheme.primaryColor,
                                     ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    'Loading organizations...',
-                                    style: TextStyle(
-                                      color: AppTheme.textMedium,
+                                    border: OutlineInputBorder(
+                                      borderRadius: AppTheme.borderRadiusMedium,
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: AppTheme.borderRadiusMedium,
+                                      borderSide: BorderSide(
+                                        color: AppTheme.dividerColor,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: AppTheme.borderRadiusMedium,
+                                      borderSide: BorderSide(
+                                        color: AppTheme.primaryColor,
+                                        width: 2,
+                                      ),
                                     ),
                                   ),
-                                ],
-                              ),
-                            )
-                          : DropdownButtonFormField<String>(
-                            value: _organizations.isNotEmpty ? _orgId : null,
-                            decoration: InputDecoration(
-                              labelText: 'Organization',
-                              prefixIcon: Icon(
-                                Icons.business_outlined,
-                                color: AppTheme.primaryColor,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: AppTheme.borderRadiusMedium,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: AppTheme.borderRadiusMedium,
-                                borderSide: BorderSide(
-                                  color: AppTheme.dividerColor,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: AppTheme.borderRadiusMedium,
-                                borderSide: BorderSide(
-                                  color: AppTheme.primaryColor,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                            items: _organizations.isEmpty
-                                ? [
-                                    const DropdownMenuItem(
-                                      value: '',
-                                      child: Text('No organizations available'),
-                                    )
-                                  ]
-                                : _organizations.map((org) {
-                                    return DropdownMenuItem(
-                                      value: org.orgId,
-                                      child: Text(org.name),
+                                  items: _organizations.isEmpty
+                                      ? [
+                                          const DropdownMenuItem(
+                                            value: '',
+                                            child: Text(
+                                              'No organizations available',
+                                            ),
+                                          ),
+                                        ]
+                                      : _organizations.map((org) {
+                                          return DropdownMenuItem(
+                                            value: org.orgId,
+                                            child: Text(org.name),
+                                          );
+                                        }).toList(),
+                                  validator: (v) => v != null && v.isNotEmpty
+                                      ? null
+                                      : 'Please select an organization',
+                                  onChanged: (v) =>
+                                      setState(() => _orgId = v ?? ''),
+                                ).animate().custom(
+                                  duration: AppTheme.animDurationMedium,
+                                  delay: 900.ms,
+                                  begin: 0,
+                                  end: 1,
+                                  builder: (context, value, child) {
+                                    return Transform.translate(
+                                      offset: Offset(0, 20 * (1 - value)),
+                                      child: Opacity(
+                                        opacity: value,
+                                        child: child,
+                                      ),
                                     );
-                                  }).toList(),
-                            validator: (v) => v != null && v.isNotEmpty
-                                ? null
-                                : 'Please select an organization',
-                            onChanged: (v) => setState(() => _orgId = v ?? ''),
-                          ).animate().custom(
-                            duration: AppTheme.animDurationMedium,
-                            delay: 900.ms,
-                            begin: 0,
-                            end: 1,
-                            builder: (context, value, child) {
-                              return Transform.translate(
-                                offset: Offset(0, 20 * (1 - value)),
-                                child: Opacity(opacity: value, child: child),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+                                  },
+                                ),
 
+                          // No organizations warning
                           if (_organizations.isEmpty && !_loadingOrgs)
                             Padding(
                               padding: const EdgeInsets.only(top: 8.0),
@@ -473,6 +468,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 ),
                               ),
                             ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 20),
 
                     // Error Message
