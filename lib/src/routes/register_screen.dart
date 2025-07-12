@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import '../providers/admin_provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
-import '../utils/animation_utils.dart';
 import '../widgets/components/animated_cards.dart';
+import '../models/organization.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -21,11 +22,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _email = '';
   String _password = '';
   String _role = 'student';
-  String _orgId = '1'; // Using verified organization ID
+  String _orgId = '';
   bool _loading = false;
+  bool _loadingOrgs = false;
   String? _error;
   bool _obscurePassword = true;
+  List<Organization> _organizations = [];
+  @override
+  void initState() {
+    super.initState();
+    _fetchOrganizations();
+  }
 
+  Future<void> _fetchOrganizations() async {
+    setState(() {
+      _loadingOrgs = true;
+    });
+    
+    final adminProvider = Provider.of<AdminProvider>(context, listen: false);
+    await adminProvider.fetchPublicOrganizations();
+    
+    setState(() {
+      _organizations = adminProvider.publicOrganizations;
+      _loadingOrgs = false;
+      // Set default org ID if organizations are available
+      if (_organizations.isNotEmpty) {
+        _orgId = _organizations.first.orgId;
+      }
+    });
+  }
   void _register() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
@@ -52,7 +77,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
     }
   }
-
+        // Organization Dropdown
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppTheme.primaryColor.withOpacity(0.05),
+              AppTheme.background,
+            ],
+          ),
+        ),
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,7 +122,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       duration: AppTheme.animDurationFast,
                       delay: 100.ms,
                     ),
-
                     // Title and Subtitle
                     Center(
                       child: Column(
@@ -341,8 +375,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           const SizedBox(height: 20),
 
                           // Organization Dropdown
-                          DropdownButtonFormField<String>(
-                            value: _orgId,
+                          _loadingOrgs
+                          ? Container(
+                              height: 60,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: AppTheme.dividerColor),
+                                borderRadius: AppTheme.borderRadiusMedium,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppTheme.primaryColor,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'Loading organizations...',
+                                    style: TextStyle(
+                                      color: AppTheme.textMedium,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : DropdownButtonFormField<String>(
+                            value: _organizations.isNotEmpty ? _orgId : null,
                             decoration: InputDecoration(
                               labelText: 'Organization',
                               prefixIcon: Icon(
@@ -366,21 +429,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 ),
                               ),
                             ),
-                            items: const [
-                              DropdownMenuItem(
-                                value: '1',
-                                child: Text('Default Organization'),
-                              ),
-                              DropdownMenuItem(
-                                value: '2',
-                                child: Text('Test Organization'),
-                              ),
-                              DropdownMenuItem(
-                                value: '3',
-                                child: Text('Demo Organization'),
-                              ),
-                            ],
-                            onChanged: (v) => setState(() => _orgId = v ?? '1'),
+                            items: _organizations.isEmpty
+                                ? [
+                                    const DropdownMenuItem(
+                                      value: '',
+                                      child: Text('No organizations available'),
+                                    )
+                                  ]
+                                : _organizations.map((org) {
+                                    return DropdownMenuItem(
+                                      value: org.orgId,
+                                      child: Text(org.name),
+                                    );
+                                  }).toList(),
+                            validator: (v) => v != null && v.isNotEmpty
+                                ? null
+                                : 'Please select an organization',
+                            onChanged: (v) => setState(() => _orgId = v ?? ''),
                           ).animate().custom(
                             duration: AppTheme.animDurationMedium,
                             delay: 900.ms,
@@ -397,6 +462,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
 
+                          if (_organizations.isEmpty && !_loadingOrgs)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(
+                                'No organizations available. Please contact an administrator.',
+                                style: TextStyle(
+                                  color: AppTheme.errorColor,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
                     const SizedBox(height: 20),
 
                     // Error Message
