@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import '../providers/admin_provider.dart';
 import '../models/session.dart';
+
 class SessionManagementScreen extends StatefulWidget {
   static const String routeName = '/session-management';
   const SessionManagementScreen({super.key});
@@ -10,18 +11,21 @@ class SessionManagementScreen extends StatefulWidget {
   State<SessionManagementScreen> createState() =>
       _SessionManagementScreenState();
 }
+
 class _SessionManagementScreenState extends State<SessionManagementScreen> {
   @override
   void initState() {
     super.initState();
     Provider.of<AdminProvider>(context, listen: false).fetchSessions();
   }
+
   void _showCreateSessionDialog() {
     showDialog(
       context: context,
       builder: (context) => const CreateSessionDialog(),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     final admin = Provider.of<AdminProvider>(context);
@@ -105,6 +109,7 @@ class _SessionManagementScreenState extends State<SessionManagementScreen> {
     );
   }
 }
+
 class SessionCard extends StatelessWidget {
   final Session session;
   const SessionCard({super.key, required this.session});
@@ -150,17 +155,20 @@ class SessionCard extends StatelessWidget {
       ),
     );
   }
+
   void _toggleSession(BuildContext context, Session session) {
     final admin = Provider.of<AdminProvider>(context, listen: false);
     final isActive = session.isActive;
     admin.updateSession(session.sessionId, isActive: !isActive);
   }
+
   void _editSession(BuildContext context, Session session) {
     showDialog(
       context: context,
       builder: (context) => CreateSessionDialog(session: session),
     );
   }
+
   void _deleteSession(BuildContext context, Session session) {
     showDialog(
       context: context,
@@ -189,12 +197,14 @@ class SessionCard extends StatelessWidget {
     );
   }
 }
+
 class CreateSessionDialog extends StatefulWidget {
   final Session? session;
   const CreateSessionDialog({super.key, this.session});
   @override
   State<CreateSessionDialog> createState() => _CreateSessionDialogState();
 }
+
 class _CreateSessionDialogState extends State<CreateSessionDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
@@ -224,6 +234,7 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
       _lon = widget.session!.locationLon;
     }
   }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -231,6 +242,7 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
     _radiusController.dispose();
     super.dispose();
   }
+
   Future<void> _getCurrentLocation() async {
     setState(() => _loading = true);
     try {
@@ -359,6 +371,7 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
       }
     }
   }
+
   void _showLocationFallbackDialog() {
     showDialog(
       context: context,
@@ -413,6 +426,7 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
       ),
     );
   }
+
   void _showManualLocationDialog() {
     final latController = TextEditingController(text: _lat?.toString() ?? '');
     final lonController = TextEditingController(text: _lon?.toString() ?? '');
@@ -494,6 +508,7 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
       ),
     );
   }
+
   Future<void> _selectDateTime(bool isStart) async {
     final date = await showDatePicker(
       context: context,
@@ -524,6 +539,7 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
       }
     }
   }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_startTime == null || _endTime == null) {
@@ -586,6 +602,7 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
       );
     }
   }
+
   // Debug method to test geolocation step by step
   Future<void> _debugGeolocation() async {
     try {
@@ -621,6 +638,7 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../models/user.dart';
+
 class AuthProvider extends ChangeNotifier {
   User? _user;
   String? _token;
@@ -19,6 +20,7 @@ class AuthProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
+
   Future<dynamic> login(String email, String password) async {
     try {
       final response = await ApiService.post(
@@ -42,6 +44,7 @@ class AuthProvider extends ChangeNotifier {
       return 'Login failed: ${e.toString()}';
     }
   }
+
   Future<dynamic> register(
     String name,
     String email,
@@ -76,6 +79,7 @@ class AuthProvider extends ChangeNotifier {
       return 'Registration failed: ${e.toString()}';
     }
   }
+
   Future<dynamic> registerAdmin(
     String name,
     String email,
@@ -126,6 +130,7 @@ class AuthProvider extends ChangeNotifier {
       return 'Admin registration failed: ${e.toString()}';
     }
   }
+
   Future<void> logout() async {
     _user = null;
     _token = null;
@@ -134,10 +139,12 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('user');
     notifyListeners();
   }
+
   /// Auto-logout when session is invalidated (e.g., due to organization deletion)
   Future<void> handleSessionInvalidation({String? reason}) async {
     await logout();
   }
+
   /// Check if the response indicates session invalidation and handle it
   bool handleApiResponse(Map<String, dynamic> response) {
     if (response['session_invalidated'] == true) {

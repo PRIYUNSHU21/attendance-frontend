@@ -10,7 +10,7 @@ class ApiService {
     Map<String, String>? headers,
   }) async {
     final token = await _getToken();
-    
+
     final response = await http.get(
       Uri.parse(baseUrl + path),
       headers: {

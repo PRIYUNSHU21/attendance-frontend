@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
+
 class AdminRegisterScreen extends StatefulWidget {
   static const String routeName = '/admin-register';
   const AdminRegisterScreen({super.key});
   @override
   State<AdminRegisterScreen> createState() => _AdminRegisterScreenState();
 }
+
 class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _contactEmailController = TextEditingController();
@@ -142,8 +144,7 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
               }
             }
           }
-        } catch (e) {
-        }
+        } catch (e) {}
       }
       // Check for specific error types and provide helpful messages
       if (errorMessage.contains('contact_email') ||
@@ -185,11 +186,13 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
       );
     }
   }
+
   @override
   void dispose() {
     _contactEmailController.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
