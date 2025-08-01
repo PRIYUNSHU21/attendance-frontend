@@ -31,7 +31,6 @@ class AuthProvider extends ChangeNotifier {
         // The backend returns 'jwt_token' not 'token'
         _token = response['data']['jwt_token'];
         _user = User.fromJson(response['data']['user']);
-        // Debug print user data
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', _token!);
         await prefs.setString('user', _user!.toJsonString());
@@ -113,16 +112,10 @@ class AuthProvider extends ChangeNotifier {
         if (adminResponse['success'] == true) {
           return true;
         } else {
-          print(
-            'DEBUG ADMIN REG: Admin registration failed: ${adminResponse['message']}',
-          );
           // Return the full response for detailed error handling
           return adminResponse;
         }
       } else {
-        print(
-          'DEBUG ADMIN REG: Organization creation failed: ${orgResponse['message']}',
-        );
         // Return the full response for detailed error handling
         return orgResponse;
       }

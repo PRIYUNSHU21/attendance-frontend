@@ -603,42 +603,6 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
     }
   }
 
-  // Debug method to test geolocation step by step
-  Future<void> _debugGeolocation() async {
-    try {
-      // Test 1: Check if geolocation is supported
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      // Test 2: Check permissions
-      final permission = await Geolocator.checkPermission();
-      // Test 3: Try to get position with very basic settings
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.low,
-        timeLimit: const Duration(seconds: 30),
-      );
-      print(
-        '   Success! Position: ${position.latitude}, ${position.longitude}',
-      );
-      // Update UI
-      if (mounted) {
-        setState(() {
-          _lat = position.latitude;
-          _lon = position.longitude;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Debug: Location retrieved successfully!'),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Debug Error: $e')));
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -769,17 +733,6 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    // Debug button for troubleshooting
-                    ElevatedButton.icon(
-                      onPressed: _debugGeolocation,
-                      icon: const Icon(Icons.bug_report),
-                      label: const Text('Debug Location'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.purple,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 36),
-                      ),
-                    ),
                   ],
                 ),
               ),

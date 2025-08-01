@@ -5,6 +5,7 @@ import '../providers/admin_provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 import '../widgets/components/animated_cards.dart';
+import '../widgets/organization_search_field.dart';
 import '../models/organization.dart';
 import 'login_screen.dart';
 
@@ -22,7 +23,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _email = '';
   String _password = '';
   String _role = 'student';
-  String _orgId = '';
+  Organization? _selectedOrganization;
   bool _loading = false;
   bool _loadingOrgs = false;
   String? _error;
@@ -31,7 +32,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchOrganizations();
+    // Delay organization fetching to avoid calling setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchOrganizations();
+    });
   }
 
   Future<void> _fetchOrganizations() async {
@@ -45,27 +49,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() {
       _organizations = adminProvider.publicOrganizations;
       _loadingOrgs = false;
-      // Set default org ID if organizations are available
-      if (_organizations.isNotEmpty) {
-        _orgId = _organizations.first.orgId;
-      }
     });
   }
 
   void _register() async {
     if (!_formKey.currentState!.validate()) return;
+
+    _formKey.currentState!.save();
+
     setState(() {
       _loading = true;
       _error = null;
     });
-    _formKey.currentState!.save();
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final result = await authProvider.register(
       _name,
       _email,
       _password,
       _role,
-      _orgId,
+      _selectedOrganization!.orgId,
     );
     setState(() {
       _loading = false;
@@ -289,9 +292,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ),
                             obscureText: _obscurePassword,
-                            validator: (v) => v != null && v.length >= 6
-                                ? null
-                                : 'Password must be at least 6 characters',
+                            validator: (v) {
+                              if (v == null || v.isEmpty) {
+                                return 'Password is required';
+                              }
+                              if (v.length < 8) {
+                                return 'Password must be at least 8 characters';
+                              }
+                              if (!RegExp(r'[A-Z]').hasMatch(v)) {
+                                return 'Password must contain at least one uppercase letter';
+                              }
+                              if (!RegExp(r'[0-9]').hasMatch(v)) {
+                                return 'Password must contain at least one number';
+                              }
+                              if (!RegExp(
+                                r'[!@#$%^&*(),.?":{}|<>]',
+                              ).hasMatch(v)) {
+                                return 'Password must contain at least one special character';
+                              }
+                              return null;
+                            },
                             onSaved: (v) => _password = v ?? '',
                           ).animate().custom(
                             duration: AppTheme.animDurationMedium,
@@ -304,6 +324,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 child: Opacity(opacity: value, child: child),
                               );
                             },
+                          ),
+
+                          // Password requirements
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              top: 8.0,
+                              left: 12.0,
+                            ),
+                            child: Text(
+                              'Password must contain:\n• At least 8 characters\n• One uppercase letter (A-Z)\n• One number (0-9)\n• One special character (!@#\$%^&*)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textLight,
+                              ),
+                            ),
                           ),
 
                           const SizedBox(height: 20),
@@ -361,113 +396,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                           const SizedBox(height: 20),
 
-                          // Organization Dropdown
-                          _loadingOrgs
-                              ? Container(
-                                  height: 60,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: AppTheme.dividerColor,
-                                    ),
-                                    borderRadius: AppTheme.borderRadiusMedium,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: AppTheme.primaryColor,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Text(
-                                        'Loading organizations...',
-                                        style: TextStyle(
-                                          color: AppTheme.textMedium,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              : DropdownButtonFormField<String>(
-                                  value: _organizations.isNotEmpty
-                                      ? _orgId
-                                      : null,
-                                  decoration: InputDecoration(
-                                    labelText: 'Organization',
-                                    prefixIcon: Icon(
-                                      Icons.business_outlined,
-                                      color: AppTheme.primaryColor,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: AppTheme.borderRadiusMedium,
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: AppTheme.borderRadiusMedium,
-                                      borderSide: BorderSide(
-                                        color: AppTheme.dividerColor,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: AppTheme.borderRadiusMedium,
-                                      borderSide: BorderSide(
-                                        color: AppTheme.primaryColor,
-                                        width: 2,
-                                      ),
-                                    ),
-                                  ),
-                                  items: _organizations.isEmpty
-                                      ? [
-                                          const DropdownMenuItem(
-                                            value: '',
-                                            child: Text(
-                                              'No organizations available',
-                                            ),
-                                          ),
-                                        ]
-                                      : _organizations.map((org) {
-                                          return DropdownMenuItem(
-                                            value: org.orgId,
-                                            child: Text(org.name),
-                                          );
-                                        }).toList(),
-                                  validator: (v) => v != null && v.isNotEmpty
-                                      ? null
-                                      : 'Please select an organization',
-                                  onChanged: (v) =>
-                                      setState(() => _orgId = v ?? ''),
-                                ).animate().custom(
-                                  duration: AppTheme.animDurationMedium,
-                                  delay: 900.ms,
-                                  begin: 0,
-                                  end: 1,
-                                  builder: (context, value, child) {
-                                    return Transform.translate(
-                                      offset: Offset(0, 20 * (1 - value)),
-                                      child: Opacity(
-                                        opacity: value,
-                                        child: child,
-                                      ),
-                                    );
-                                  },
-                                ),
-
-                          // No organizations warning
-                          if (_organizations.isEmpty && !_loadingOrgs)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: Text(
-                                'No organizations available. Please contact an administrator.',
-                                style: TextStyle(
-                                  color: AppTheme.errorColor,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
+                          // Organization Search Field
+                          OrganizationSearchField(
+                            organizations: _organizations,
+                            selectedOrganization: _selectedOrganization,
+                            isLoading: _loadingOrgs,
+                            onSelectionChanged: (org) {
+                              setState(() {
+                                _selectedOrganization = org;
+                              });
+                            },
+                          ).animate().custom(
+                            duration: AppTheme.animDurationMedium,
+                            delay: 900.ms,
+                            begin: 0,
+                            end: 1,
+                            builder: (context, value, child) {
+                              return Transform.translate(
+                                offset: Offset(0, 20 * (1 - value)),
+                                child: Opacity(opacity: value, child: child),
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ),

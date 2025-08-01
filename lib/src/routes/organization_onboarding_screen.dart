@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/onboarding_provider.dart';
 import '../utils/app_theme.dart';
-import '../widgets/components/animated_cards.dart' as components;
+import '../widgets/organization_search_field.dart';
+import '../models/organization.dart';
 
 class OrganizationOnboardingScreen extends StatefulWidget {
   static const String routeName = '/organization-onboarding';
@@ -17,7 +18,6 @@ class OrganizationOnboardingScreen extends StatefulWidget {
 class _OrganizationOnboardingScreenState
     extends State<OrganizationOnboardingScreen> {
   final PageController _pageController = PageController();
-  int _currentStep = 0;
 
   // Form controllers
   final _orgNameController = TextEditingController();
@@ -28,6 +28,7 @@ class _OrganizationOnboardingScreenState
   final _adminPasswordController = TextEditingController();
 
   String? _selectedOrgId;
+  Organization? _selectedOrganization;
   bool _isCreatingNewOrg = true;
 
   @override
@@ -233,62 +234,18 @@ class _OrganizationOnboardingScreenState
   }
 
   Widget _buildJoinExistingOrgList(OnboardingProvider onboardingProvider) {
-    if (onboardingProvider.organizations.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.business, size: 64, color: AppTheme.textLight),
-            const SizedBox(height: 16),
-            Text(
-              'No organizations found',
-              style: AppTheme.bodyLarge.copyWith(color: AppTheme.textMedium),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Create a new organization to get started',
-              style: AppTheme.bodyMedium.copyWith(color: AppTheme.textLight),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: onboardingProvider.organizations.length,
-      itemBuilder: (context, index) {
-        final org = onboardingProvider.organizations[index];
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: components.AnimatedCard(
-            padding: EdgeInsets.zero,
-            index: index,
-            child: RadioListTile<String>(
-              title: Text(org.name, style: AppTheme.labelLarge),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (org.description.isNotEmpty)
-                    Text(org.description, style: AppTheme.bodySmall),
-                  if (org.contactEmail != null)
-                    Text(
-                      org.contactEmail!,
-                      style: AppTheme.bodySmall.copyWith(
-                        color: AppTheme.textLight,
-                      ),
-                    ),
-                ],
-              ),
-              value: org.orgId,
-              groupValue: _selectedOrgId,
-              onChanged: (value) => setState(() => _selectedOrgId = value),
-              activeColor: AppTheme.primaryColor,
-            ),
-          ),
-        );
+    return OrganizationSearchField(
+      organizations: onboardingProvider.organizations,
+      selectedOrganization: _selectedOrganization,
+      isLoading: onboardingProvider.loading,
+      onSelectionChanged: (org) {
+        setState(() {
+          _selectedOrganization = org;
+          _selectedOrgId = org?.orgId;
+        });
       },
+      hintText: 'Search for your organization...',
+      labelText: 'Select Organization',
     );
   }
 
@@ -497,7 +454,6 @@ class _OrganizationOnboardingScreenState
   }
 
   void _proceedToStepTwo() {
-    setState(() => _currentStep = 1);
     _pageController.nextPage(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
@@ -505,7 +461,6 @@ class _OrganizationOnboardingScreenState
   }
 
   void _goBackToStepOne() {
-    setState(() => _currentStep = 0);
     _pageController.previousPage(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
@@ -553,7 +508,6 @@ class _OrganizationOnboardingScreenState
     }
 
     if (result?.success == true) {
-      setState(() => _currentStep = 2);
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,

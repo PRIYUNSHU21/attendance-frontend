@@ -20,6 +20,7 @@ A comprehensive Flutter-based attendance management application designed for edu
 
 ### Core Functionality
 - **Organization Management**: Create and manage multiple educational organizations
+- **Smart Organization Search**: Search and filter organizations by name or description during registration
 - **User Management**: Create and manage admin, teacher, and student accounts
 - **Session Management**: Create, activate, and close attendance sessions
 - **Attendance Tracking**: Record and track student attendance with location validation
@@ -27,6 +28,7 @@ A comprehensive Flutter-based attendance management application designed for edu
 
 ### Technical Highlights
 - **Modern UI/UX**: Smooth animations and intuitive interface
+- **Intelligent Search**: Real-time organization filtering and selection
 - **Responsive Design**: Works on mobile, tablet, and web platforms
 - **Location-Based Verification**: Ensures students are physically present
 - **Role-Based Access Control**: Different interfaces for admins, teachers, and students
