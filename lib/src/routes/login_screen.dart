@@ -3,7 +3,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
-import '../utils/animation_utils.dart';
 import '../widgets/components/animated_cards.dart';
 import 'dashboard_screen.dart';
 import 'register_screen.dart';

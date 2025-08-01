@@ -291,16 +291,6 @@ class AdminProvider extends ChangeNotifier {
         // Extract enhanced deletion data
         final deletionData = response['data'];
 
-        // Log the deletion results for debugging
-        print('🗑️ Organization deletion completed:');
-        print('  - Organization: ${deletionData['organization']}');
-        print('  - Users deleted: ${deletionData['users']}');
-        print('  - Sessions deleted: ${deletionData['attendance_sessions']}');
-        print('  - Records deleted: ${deletionData['attendance_records']}');
-        print(
-          '  - User sessions invalidated: ${deletionData['invalidated_sessions']}',
-        );
-
         // Refresh organizations list
         fetchOrganizations();
         notifyListeners();
@@ -395,16 +385,6 @@ class AdminProvider extends ChangeNotifier {
         _error = null;
         // Extract enhanced soft deletion data
         final softDeleteData = response['data'];
-
-        // Log the soft deletion results for debugging
-        print('📦 Organization soft deletion completed:');
-        print('  - Organization: ${softDeleteData['name']}');
-        print(
-          '  - Status: ${softDeleteData['is_active'] ? 'Active' : 'Inactive'}',
-        );
-        print(
-          '  - Sessions invalidated: ${softDeleteData['invalidated_sessions']}',
-        );
 
         // Refresh organizations list
         fetchOrganizations();
