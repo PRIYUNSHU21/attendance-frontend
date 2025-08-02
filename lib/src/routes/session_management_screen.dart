@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import '../providers/admin_provider.dart';
 import '../models/session.dart';
+import '../utils/app_theme.dart';
 
 class SessionManagementScreen extends StatefulWidget {
   static const String routeName = '/session-management';
@@ -32,6 +33,8 @@ class _SessionManagementScreenState extends State<SessionManagementScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Session Management'),
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.add_circle),
@@ -565,9 +568,10 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
         description: _descriptionController.text,
         startTime: _startTime!,
         endTime: _endTime!,
-        locationLat: _lat!,
-        locationLon: _lon!,
-        locationRadius: double.parse(_radiusController.text),
+        // Removed location parameters as per backend schema changes
+        // locationLat: _lat!,
+        // locationLon: _lon!,
+        // locationRadius: double.parse(_radiusController.text),
       );
     } else {
       // Create new session
@@ -576,9 +580,10 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
         description: _descriptionController.text,
         startTime: _startTime!,
         endTime: _endTime!,
-        locationLat: _lat!,
-        locationLon: _lon!,
-        locationRadius: double.parse(_radiusController.text),
+        // Removed location parameters as per backend schema changes
+        // locationLat: _lat!,
+        // locationLon: _lon!,
+        // locationRadius: double.parse(_radiusController.text),
       );
     }
     setState(() => _loading = false);

@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/admin_provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
-import '../widgets/components/animated_cards.dart';
+import '../widgets/app_logo.dart';
 import '../widgets/organization_search_field.dart';
 import '../models/organization.dart';
 import 'login_screen.dart';
@@ -106,7 +106,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Header Section
+                    // Header Section with Logo
                     IconButton(
                       onPressed: () => Navigator.pop(context),
                       icon: Icon(Icons.arrow_back, color: AppTheme.textDark),
@@ -116,20 +116,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       duration: AppTheme.animDurationFast,
                       delay: 100.ms,
                     ),
-                    // Title and Subtitle
+
+                    const SizedBox(height: 16),
+
+                    // Logo Section
                     Center(
                       child: Column(
                         children: [
-                          Icon(
-                            Icons.app_registration_rounded,
-                            size: 64,
-                            color: AppTheme.primaryColor,
-                          ).animate().scale(
+                          AppLogo(size: 80, showText: false).animate().scale(
                             duration: AppTheme.animDurationMedium,
                             curve: Curves.easeOutBack,
                             delay: 200.ms,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 24),
                           Text(
                             'Create Account',
                             style: AppTheme.headingMedium.copyWith(
@@ -156,13 +155,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 32),
                     // Registration Form Card
-                    AnimatedCard(
-                      padding: const EdgeInsets.all(24),
-                      boxShadow: AppTheme.cardShadowLarge,
-                      borderRadius: AppTheme.borderRadiusLarge,
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          // Welcome Text
+                          Text(
+                            'Create Account',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textPrimary,
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Join AttendEase today',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: AppTheme.textSecondary),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 32),
+
                           // Name Field
                           TextFormField(
                             decoration: InputDecoration(
@@ -171,22 +198,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               prefixIcon: Icon(
                                 Icons.person_outline,
                                 color: AppTheme.primaryColor,
+                                size: 20,
                               ),
+                              filled: true,
+                              fillColor: Colors.grey.shade50,
                               border: OutlineInputBorder(
-                                borderRadius: AppTheme.borderRadiusMedium,
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: AppTheme.borderRadiusMedium,
+                                borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
                                   color: AppTheme.dividerColor,
+                                  width: 1,
                                 ),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: AppTheme.borderRadiusMedium,
+                                borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
                                   color: AppTheme.primaryColor,
                                   width: 2,
                                 ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
                               ),
                             ),
                             validator: (v) => v != null && v.isNotEmpty

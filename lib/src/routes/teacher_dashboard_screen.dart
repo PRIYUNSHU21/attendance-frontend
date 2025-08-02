@@ -6,6 +6,7 @@ import '../providers/admin_provider.dart';
 import '../providers/attendance_provider.dart';
 import '../models/session.dart';
 import '../utils/app_theme.dart';
+import '../widgets/app_logo.dart';
 import '../widgets/components/animated_cards.dart' as components;
 import 'session_management_screen.dart';
 
@@ -21,7 +22,12 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    // Use post frame callback to avoid build-time setState calls
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadData();
+      }
+    });
   }
 
   void _loadData() {
@@ -43,14 +49,30 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Teacher Dashboard',
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        title: Row(
+          children: [
+            CompactAppLogo(size: 28),
+            const SizedBox(width: 12),
+            const Text(
+              'Teacher Dashboard',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          // Debug button for testing session visibility
+          IconButton(
+                icon: const Icon(Icons.bug_report),
+                tooltip: 'Debug Sessions',
+                onPressed: () => Navigator.pushNamed(context, '/session-debug'),
+              )
+              .animate()
+              .fadeIn(duration: 400.ms, delay: 100.ms)
+              .slideY(begin: -0.2, end: 0, duration: 400.ms, delay: 100.ms),
+
           // Admin panel shortcut if user is admin
           if (auth.user?.role == 'admin')
             IconButton(
@@ -595,6 +617,33 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                   Navigator.pushNamed(context, '/analytics');
                 },
                 index: 1,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // Add a students management card
+        Row(
+          children: [
+            Expanded(
+              child: components.ActionCard(
+                title: 'View Students',
+                subtitle: 'Manage students by organization',
+                icon: Icons.people,
+                color: AppTheme.successColor,
+                onTap: () => Navigator.pushNamed(context, '/students-list'),
+                index: 2,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: components.ActionCard(
+                title: 'Session History',
+                subtitle: 'View all past sessions',
+                icon: Icons.history,
+                color: AppTheme.warningColor,
+                onTap: () => Navigator.pushNamed(context, '/analytics'),
+                index: 3,
               ),
             ),
           ],

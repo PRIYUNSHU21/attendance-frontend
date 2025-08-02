@@ -96,40 +96,69 @@ class AdminProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Fetch details for a specific session using the new backend endpoint
+  Future<Session?> fetchSessionDetails(String sessionId) async {
+    try {
+      final response = await ApiService.get('/attendance/sessions/$sessionId');
+      
+      if (response['success'] == true) {
+        return Session.fromJson(response['data']);
+      } else {
+        _error = response['message'] ?? 'Failed to fetch session details';
+        notifyListeners();
+        return null;
+      }
+    } catch (e) {
+      _error = 'Error fetching session details: $e';
+      notifyListeners();
+      return null;
+    }
+  }
+
   Future<bool> createSession({
     required String sessionName,
     required String description,
     required DateTime startTime,
     required DateTime endTime,
-    required double locationLat,
-    required double locationLon,
-    required double locationRadius,
+    // Removed location parameters as per backend fixes
+    // required double locationLat,
+    // required double locationLon,
+    // required double locationRadius,
   }) async {
     _loading = true;
     notifyListeners();
 
+    final sessionData = {
+      'session_name': sessionName,
+      'description': description,
+      'start_time': startTime.toIso8601String(),
+      'end_time': endTime.toIso8601String(),
+      // Removed location fields as per backend schema changes
+      // 'location_lat': locationLat,
+      // 'location_lon': locationLon,
+      // 'location_radius': locationRadius,
+    };
+
+    print('🚀 Creating session with data: $sessionData');
+
     final response = await ApiService.post(
       '/admin/sessions',
-      body: {
-        'session_name': sessionName,
-        'description': description,
-        'start_time': startTime.toIso8601String(),
-        'end_time': endTime.toIso8601String(),
-        'location_lat': locationLat,
-        'location_lon': locationLon,
-        'location_radius': locationRadius,
-      },
+      body: sessionData,
     );
+
+    print('📡 Session creation response: ${response.toString()}');
 
     _loading = false;
     if (response['success'] == true) {
       _error = null;
+      print('✅ Session created successfully!');
       // Refresh sessions list
       fetchSessions();
       notifyListeners();
       return true;
     } else {
       _error = response['message'];
+      print('❌ Session creation failed: $_error');
       notifyListeners();
       return false;
     }
@@ -141,9 +170,10 @@ class AdminProvider extends ChangeNotifier {
     String? description,
     DateTime? startTime,
     DateTime? endTime,
-    double? locationLat,
-    double? locationLon,
-    double? locationRadius,
+    // Removed location parameters as per backend schema changes
+    // double? locationLat,
+    // double? locationLon,
+    // double? locationRadius,
     bool? isActive,
   }) async {
     _loading = true;
@@ -154,9 +184,10 @@ class AdminProvider extends ChangeNotifier {
     if (description != null) body['description'] = description;
     if (startTime != null) body['start_time'] = startTime.toIso8601String();
     if (endTime != null) body['end_time'] = endTime.toIso8601String();
-    if (locationLat != null) body['location_lat'] = locationLat;
-    if (locationLon != null) body['location_lon'] = locationLon;
-    if (locationRadius != null) body['location_radius'] = locationRadius;
+    // Removed location field assignments as per backend schema changes
+    // if (locationLat != null) body['location_lat'] = locationLat;
+    // if (locationLon != null) body['location_lon'] = locationLon;
+    // if (locationRadius != null) body['location_radius'] = locationRadius;
     if (isActive != null) body['is_active'] = isActive;
 
     final response = await ApiService.put(

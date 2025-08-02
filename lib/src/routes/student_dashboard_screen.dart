@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/auth_provider.dart';
 import '../providers/attendance_provider.dart';
-import '../models/session.dart';
 import '../models/attendance.dart';
 import '../utils/app_theme.dart';
-import '../widgets/components/animated_cards.dart' as components;
+import '../widgets/app_logo.dart';
 import 'student_attendance_screen.dart';
 import 'attendance_screen.dart';
+import 'login_screen.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   static const String routeName = '/student-dashboard';
@@ -18,14 +17,14 @@ class StudentDashboardScreen extends StatefulWidget {
   State<StudentDashboardScreen> createState() => _StudentDashboardScreenState();
 }
 
-class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
+class _StudentDashboardScreenState extends State<StudentDashboardScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
   @override
   void initState() {
     super.initState();
-    _loadData();
-  }
-
-  void _loadData() {
+    _tabController = TabController(length: 4, vsync: this);
     final attendanceProvider = Provider.of<AttendanceProvider>(
       context,
       listen: false,
@@ -35,450 +34,599 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   }
 
   @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
-    final attendanceProvider = Provider.of<AttendanceProvider>(context);
+    final attendance = Provider.of<AttendanceProvider>(context);
+    final user = auth.user;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Student Dashboard',
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        title: Row(
+          children: [
+            CompactAppLogo(size: 28),
+            const SizedBox(width: 12),
+            const Text('Student Dashboard'),
+          ],
         ),
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
-        elevation: 0,
         actions: [
           IconButton(
-                icon: const Icon(Icons.logout),
-                tooltip: 'Logout',
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Logout'),
-                      content: const Text('Are you sure you want to logout?'),
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: AppTheme.borderRadiusMedium,
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            auth.logout();
-                            Navigator.pop(context);
-                            Navigator.pushReplacementNamed(context, '/login');
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryColor,
-                          ),
-                          child: const Text('Logout'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              )
-              .animate()
-              .fadeIn(duration: 400.ms, delay: 300.ms)
-              .slideY(begin: -0.2, end: 0, duration: 400.ms, delay: 300.ms),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async => _loadData(),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Welcome Header
-                _buildWelcomeHeader(auth),
-                const SizedBox(height: 20),
-
-                // Attendance Stats
-                _buildAttendanceStats(attendanceProvider),
-                const SizedBox(height: 20),
-
-                // Active Sessions
-                _buildActiveSessionsSection(attendanceProvider),
-                const SizedBox(height: 20),
-
-                // Recent Attendance
-                _buildRecentAttendance(attendanceProvider),
-                const SizedBox(height: 20),
-
-                // Quick Actions
-                _buildQuickActions(context),
-              ],
-            ),
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await auth.logout();
+              Navigator.pushReplacementNamed(context, LoginScreen.routeName);
+            },
           ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          tabs: const [
+            Tab(icon: Icon(Icons.dashboard), text: 'Overview'),
+            Tab(icon: Icon(Icons.schedule), text: 'Sessions'),
+            Tab(icon: Icon(Icons.history), text: 'History'),
+            Tab(icon: Icon(Icons.person), text: 'Profile'),
+          ],
         ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // Overview Tab
+          _buildOverviewTab(user, attendance),
+          // Sessions Tab
+          _buildSessionsTab(attendance),
+          // History Tab
+          _buildHistoryTab(attendance),
+          // Profile Tab
+          _buildProfileTab(user, auth),
+        ],
       ),
     );
   }
 
-  Widget _buildWelcomeHeader(AuthProvider auth) {
+  Widget _buildOverviewTab(user, AttendanceProvider attendance) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Welcome Card
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.indigo.shade400, Colors.indigo.shade600],
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome Back!',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  user?.name ?? 'Student',
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  user?.email ?? '',
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Quick Stats
+          Text(
+            'Quick Stats',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Active Sessions',
+                  '${attendance.activeSessions.length}',
+                  Icons.schedule,
+                  Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  'Total Attended',
+                  '${attendance.history.length}',
+                  Icons.check_circle,
+                  Colors.green,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'This Week',
+                  '${_getThisWeekAttendance(attendance.history)}',
+                  Icons.calendar_today,
+                  Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  'Attendance Rate',
+                  '${_calculateAttendanceRate(attendance.history)}%',
+                  Icons.trending_up,
+                  Colors.purple,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // Quick Actions
+          Text(
+            'Quick Actions',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+
+          _buildQuickActionCard(
+            'Mark Attendance',
+            'Check in to active sessions',
+            Icons.check_circle_outline,
+            Colors.green,
+            () =>
+                Navigator.pushNamed(context, StudentAttendanceScreen.routeName),
+          ),
+
+          const SizedBox(height: 12),
+
+          _buildQuickActionCard(
+            'View History',
+            'See your attendance records',
+            Icons.history,
+            Colors.blue,
+            () => Navigator.pushNamed(context, AttendanceScreen.routeName),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Recent Sessions
+          if (attendance.activeSessions.isNotEmpty) ...[
+            Text(
+              'Current Active Sessions',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            ...attendance.activeSessions
+                .take(3)
+                .map((session) => _buildSessionPreviewCard(session)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSessionsTab(AttendanceProvider attendance) {
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          color: Colors.indigo.shade50,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Available Sessions',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.indigo.shade700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Sessions you can attend today',
+                style: TextStyle(color: Colors.indigo.shade600, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: attendance.loading
+              ? const Center(child: CircularProgressIndicator())
+              : attendance.activeSessions.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.event_busy, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'No Active Sessions',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Check back later for new sessions',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: () => attendance.fetchActiveSessions(),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: attendance.activeSessions.length,
+                    itemBuilder: (context, index) {
+                      final session = attendance.activeSessions[index];
+                      return _buildDetailedSessionCard(session);
+                    },
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHistoryTab(AttendanceProvider attendance) {
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          color: Colors.blue.shade50,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Attendance History',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Your past attendance records',
+                style: TextStyle(color: Colors.blue.shade600, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: attendance.loading
+              ? const Center(child: CircularProgressIndicator())
+              : attendance.history.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.history, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'No History Yet',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Your attendance records will appear here',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: () => attendance.fetchHistory(),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: attendance.history.length,
+                    itemBuilder: (context, index) {
+                      final record = attendance.history[index];
+                      return _buildHistoryCard(record);
+                    },
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileTab(user, AuthProvider auth) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Profile Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.purple.shade400, Colors.purple.shade600],
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.white,
+                  child: Text(
+                    (user?.name ?? 'U').substring(0, 1).toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.purple.shade600,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  user?.name ?? 'User',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  user?.email ?? '',
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Profile Details
+          _buildProfileSection('Personal Information', [
+            _buildProfileItem('Name', user?.name ?? 'N/A'),
+            _buildProfileItem('Email', user?.email ?? 'N/A'),
+            _buildProfileItem('Role', user?.role ?? 'N/A'),
+            _buildProfileItem('User ID', user?.userId ?? 'N/A'),
+            _buildProfileItem('Organization', user?.orgId ?? 'N/A'),
+          ]),
+
+          const SizedBox(height: 24),
+
+          // Settings
+          _buildProfileSection('Settings', [
+            ListTile(
+              leading: const Icon(Icons.notifications),
+              title: const Text('Notifications'),
+              trailing: Switch(
+                value: true,
+                onChanged: (value) {
+                  // TODO: Implement notification settings
+                },
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.location_on),
+              title: const Text('Location Services'),
+              trailing: Switch(
+                value: true,
+                onChanged: (value) {
+                  // TODO: Implement location settings
+                },
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.dark_mode),
+              title: const Text('Dark Mode'),
+              trailing: Switch(
+                value: false,
+                onChanged: (value) {
+                  // TODO: Implement theme settings
+                },
+              ),
+            ),
+          ]),
+
+          const SizedBox(height: 24),
+
+          // Actions
+          _buildProfileSection('Actions', [
+            ListTile(
+              leading: const Icon(Icons.refresh, color: Colors.blue),
+              title: const Text('Refresh Data'),
+              onTap: () {
+                final attendance = Provider.of<AttendanceProvider>(
+                  context,
+                  listen: false,
+                );
+                attendance.fetchActiveSessions();
+                attendance.fetchHistory();
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Data refreshed')));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.help, color: Colors.green),
+              title: const Text('Help & Support'),
+              onTap: () {
+                // TODO: Navigate to help screen
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Help & Support coming soon')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Logout'),
+              onTap: () async {
+                await auth.logout();
+                Navigator.pushReplacementNamed(context, LoginScreen.routeName);
+              },
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
-        borderRadius: AppTheme.borderRadiusLarge,
-        boxShadow: AppTheme.cardShadowLarge,
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Colors.white.withOpacity(0.2),
-                    child: Text(
-                      auth.user?.name != null
-                          ? auth.user!.name.substring(0, 1).toUpperCase()
-                          : 'S',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  )
-                  .animate()
-                  .fadeIn(duration: 600.ms)
-                  .scale(
-                    begin: const Offset(0.8, 0.8),
-                    end: const Offset(1, 1),
-                    duration: 600.ms,
-                    curve: Curves.elasticOut,
-                  ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                          'Hello,',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
-                          ),
-                        )
-                        .animate()
-                        .fadeIn(duration: 400.ms, delay: 200.ms)
-                        .slideX(
-                          begin: 0.2,
-                          end: 0,
-                          duration: 400.ms,
-                          delay: 200.ms,
-                        ),
-                    const SizedBox(height: 4),
-                    Text(
-                          auth.user?.name ?? 'Student',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        )
-                        .animate()
-                        .fadeIn(duration: 400.ms, delay: 300.ms)
-                        .slideX(
-                          begin: 0.2,
-                          end: 0,
-                          duration: 400.ms,
-                          delay: 300.ms,
-                        ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: AppTheme.borderRadiusFull,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.today, color: Colors.white, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Today: ${_formatDate(DateTime.now())}',
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                    ),
-                  ],
-                ),
-              )
-              .animate()
-              .fadeIn(duration: 400.ms, delay: 400.ms)
-              .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 400.ms),
-          const SizedBox(height: 16),
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
           Text(
-                'Track your attendance and stay updated',
-                style: const TextStyle(color: Colors.white70, fontSize: 16),
-              )
-              .animate()
-              .fadeIn(duration: 400.ms, delay: 500.ms)
-              .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 500.ms),
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildAttendanceStats(AttendanceProvider attendanceProvider) {
-    final totalAttendance = attendanceProvider.history.length;
-    final presentCount = attendanceProvider.history
-        .where((a) => a.status == 'present')
-        .length;
-    final lateCount = attendanceProvider.history
-        .where((a) => a.status == 'late')
-        .length;
-    final absentCount = attendanceProvider.history
-        .where((a) => a.status == 'absent')
-        .length;
-
-    final attendanceRate = totalAttendance > 0
-        ? (presentCount + lateCount) / totalAttendance
-        : 0.0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Attendance Overview', style: AppTheme.headingSmall)
-            .animate()
-            .fadeIn(duration: 400.ms, delay: 250.ms)
-            .slideX(begin: 0.2, end: 0, duration: 400.ms, delay: 250.ms),
-
-        const SizedBox(height: 16),
-
-        // Attendance Rate Card
-        components.GradientCard(
-          gradient: LinearGradient(
-            colors: [
-              attendanceRate >= 0.8
-                  ? AppTheme.successColor.withOpacity(0.8)
-                  : attendanceRate >= 0.6
-                  ? AppTheme.warningColor.withOpacity(0.8)
-                  : AppTheme.errorColor.withOpacity(0.8),
-              attendanceRate >= 0.8
-                  ? AppTheme.successColor
-                  : attendanceRate >= 0.6
-                  ? AppTheme.warningColor
-                  : AppTheme.errorColor,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          child: Column(
-            children: [
-              Text(
-                'Attendance Rate',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white.withOpacity(0.9),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                    '${(attendanceRate * 100).toStringAsFixed(1)}%',
-                    style: const TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  )
-                  .animate(
-                    onPlay: (controller) => controller.repeat(reverse: true),
-                  )
-                  .scale(
-                    duration: 3.seconds,
-                    begin: const Offset(1, 1),
-                    end: const Offset(1.05, 1.05),
-                    curve: Curves.easeInOut,
-                  ),
-              const SizedBox(height: 16),
-              ClipRRect(
-                borderRadius: AppTheme.borderRadiusFull,
-                child: LinearProgressIndicator(
-                  value: attendanceRate,
-                  backgroundColor: Colors.white.withOpacity(0.3),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                  minHeight: 8,
-                ),
-              ),
-            ],
-          ),
+  Widget _buildQuickActionCard(
+    String title,
+    String subtitle,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return Card(
+      elevation: 2,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: color.withOpacity(0.1),
+          child: Icon(icon, color: color),
         ),
-
-        const SizedBox(height: 16),
-
-        // Stats Row
-        Row(
-          children: [
-            Expanded(
-              child: components.StatsCard(
-                title: 'Present',
-                value: presentCount.toString(),
-                icon: Icons.check_circle,
-                color: AppTheme.successColor,
-                index: 0,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: components.StatsCard(
-                title: 'Late',
-                value: lateCount.toString(),
-                icon: Icons.access_time,
-                color: AppTheme.warningColor,
-                index: 1,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: components.StatsCard(
-                title: 'Absent',
-                value: absentCount.toString(),
-                icon: Icons.cancel,
-                color: AppTheme.errorColor,
-                index: 2,
-              ),
-            ),
-          ],
-        ),
-      ],
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: onTap,
+      ),
     );
   }
 
-  Widget _buildActiveSessionsSection(AttendanceProvider attendanceProvider) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Active Sessions', style: AppTheme.headingSmall)
-                .animate()
-                .fadeIn(duration: 400.ms, delay: 200.ms)
-                .slideX(begin: 0.2, end: 0, duration: 400.ms, delay: 200.ms),
-
-            if (attendanceProvider.activeSessions.isNotEmpty)
-              ElevatedButton.icon(
-                    onPressed: () => Navigator.pushNamed(
-                      context,
-                      StudentAttendanceScreen.routeName,
-                    ),
-                    icon: const Icon(Icons.assignment_turned_in, size: 18),
-                    label: const Text('Mark Attendance'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                    ),
-                  )
-                  .animate()
-                  .fadeIn(duration: 400.ms, delay: 300.ms)
-                  .slideY(begin: -0.2, end: 0, duration: 400.ms, delay: 300.ms),
-          ],
+  Widget _buildSessionPreviewCard(session) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.blue.withOpacity(0.1),
+          child: const Icon(Icons.schedule, color: Colors.blue),
         ),
-        const SizedBox(height: 16),
-        if (attendanceProvider.loading)
-          Center(
-            child: CircularProgressIndicator(
-              color: AppTheme.primaryColor,
-            ).animate().fadeIn(duration: 400.ms).scale(duration: 400.ms),
-          )
-        else if (attendanceProvider.activeSessions.isEmpty)
-          _buildEmptyState(
-            'No active sessions',
-            'Check back later for new sessions',
-            Icons.event_busy,
-          )
-        else
-          SizedBox(
-            height: 210,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: attendanceProvider.activeSessions.length,
-              itemBuilder: (context, index) {
-                final session = attendanceProvider.activeSessions[index];
-                return _buildActiveSessionCard(session, index);
-              },
-            ),
-          ),
-      ],
+        title: Text(session.sessionName),
+        subtitle: Text(
+          '${_formatTime(session.startTime)} - ${_formatTime(session.endTime)}',
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: () =>
+            Navigator.pushNamed(context, StudentAttendanceScreen.routeName),
+      ),
     );
   }
 
-  Widget _buildActiveSessionCard(Session session, [int index = 0]) {
+  Widget _buildDetailedSessionCard(session) {
     final now = DateTime.now();
     final isLate = now.isAfter(
       session.startTime.add(const Duration(minutes: 15)),
     );
 
-    return Container(
-      width: 280,
-      margin: const EdgeInsets.only(right: 16),
-      child: components.AnimatedCard(
-        borderRadius: AppTheme.borderRadiusLarge,
-        index: index,
-        boxShadow: AppTheme.cardShadowLarge,
-        gradient: LinearGradient(
-          colors: isLate
-              ? [AppTheme.warningColor.withOpacity(0.7), AppTheme.warningColor]
-              : [AppTheme.primaryColor.withOpacity(0.7), AppTheme.primaryColor],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        padding: const EdgeInsets.all(18),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: AppTheme.borderRadiusMedium,
-                      ),
-                      child: Icon(Icons.event, color: Colors.white, size: 24),
-                    )
-                    .animate(
-                      onPlay: (controller) => controller.repeat(reverse: true),
-                    )
-                    .scale(
-                      duration: 2.seconds,
-                      begin: const Offset(1, 1),
-                      end: const Offset(1.1, 1.1),
-                      curve: Curves.easeInOut,
-                    ),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    session.sessionName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        session.sessionName,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        session.description.isNotEmpty
+                            ? session.description
+                            : 'No description',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 if (isLate)
@@ -488,81 +636,43 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: AppTheme.borderRadiusFull,
+                      color: Colors.orange.shade100,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                            )
-                            .animate(
-                              onPlay: (controller) =>
-                                  controller.repeat(reverse: true),
-                            )
-                            .fadeOut(
-                              duration: 1.seconds,
-                              curve: Curves.easeInOut,
-                            ),
-                        const SizedBox(width: 4),
-                        const Text(
-                          'LATE',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      'LATE',
+                      style: TextStyle(
+                        color: Colors.orange.shade700,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(
-              session.description.isNotEmpty
-                  ? session.description
-                  : 'No description',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 14,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            Row(
+              children: [
+                Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 4),
+                Text(
+                  '${_formatTime(session.startTime)} - ${_formatTime(session.endTime)}',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                ),
+              ],
             ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: AppTheme.borderRadiusSmall,
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.access_time,
-                    color: Colors.white.withOpacity(0.8),
-                    size: 16,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${_formatTime(session.startTime)} - ${_formatTime(session.endTime)}',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.location_on, size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 4),
+                Text(
+                  'Within ${session.locationRadius}m radius',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                ),
+              ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -570,16 +680,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   context,
                   StudentAttendanceScreen.routeName,
                 ),
-                icon: const Icon(Icons.check_circle, size: 16),
+                icon: const Icon(Icons.check_circle_outline),
                 label: const Text('Mark Attendance'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: isLate
-                      ? AppTheme.warningColor
-                      : AppTheme.primaryColor,
+                  backgroundColor: isLate ? Colors.orange : Colors.green,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                  elevation: 0,
                 ),
               ),
             ),
@@ -589,218 +695,66 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     );
   }
 
-  Widget _buildRecentAttendance(AttendanceProvider attendanceProvider) {
-    final recentAttendance = attendanceProvider.history.take(3).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Recent Attendance', style: AppTheme.headingSmall)
-                .animate()
-                .fadeIn(duration: 400.ms, delay: 250.ms)
-                .slideX(begin: 0.2, end: 0, duration: 400.ms, delay: 250.ms),
-
-            TextButton.icon(
-                  onPressed: () =>
-                      Navigator.pushNamed(context, AttendanceScreen.routeName),
-                  icon: const Icon(Icons.history),
-                  label: const Text('View All'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.primaryColor,
-                  ),
-                )
-                .animate()
-                .fadeIn(duration: 400.ms, delay: 300.ms)
-                .slideX(begin: 0.2, end: 0, duration: 400.ms, delay: 300.ms),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (attendanceProvider.loading)
-          Center(
-            child: CircularProgressIndicator(
-              color: AppTheme.primaryColor,
-            ).animate().fadeIn(duration: 400.ms).scale(duration: 400.ms),
-          )
-        else if (recentAttendance.isEmpty)
-          _buildEmptyState(
-            'No attendance records',
-            'Mark your first attendance to see history',
-            Icons.history,
-          )
-        else
-          Column(
-            children: List.generate(
-              recentAttendance.length,
-              (index) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _buildRecentAttendanceCard(
-                  recentAttendance[index],
-                  index,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildRecentAttendanceCard(AttendanceRecord record, [int index = 0]) {
-    final isPresent = record.status == 'present';
-    final isLate = record.status == 'late';
-    final color = isPresent
-        ? AppTheme.successColor
-        : isLate
-        ? AppTheme.warningColor
-        : AppTheme.errorColor;
-    final icon = isPresent
-        ? Icons.check_circle
-        : isLate
-        ? Icons.access_time
-        : Icons.cancel;
-
-    return components.AnimatedCard(
-      index: index,
-      borderRadius: AppTheme.borderRadiusMedium,
-      padding: EdgeInsets.zero,
+  Widget _buildHistoryCard(AttendanceRecord record) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: AppTheme.borderRadiusMedium,
-          ),
-          child: Icon(icon, color: color, size: 24)
-              .animate(onPlay: (controller) => controller.loop(count: 1))
-              .scale(
-                begin: const Offset(0.5, 0.5),
-                end: const Offset(1, 1),
-                duration: 400.ms,
-                curve: Curves.elasticOut,
-              ),
+        leading: CircleAvatar(
+          backgroundColor: Colors.green.withOpacity(0.1),
+          child: const Icon(Icons.check_circle, color: Colors.green),
         ),
-        title: Text('Session: ${record.sessionId}', style: AppTheme.labelLarge),
+        title: Text('Session: ${record.sessionId}'),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 6),
-            Text(
-              'Check-in: ${_formatDateTime(record.checkInTime)}',
-              style: AppTheme.bodySmall,
-            ),
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: AppTheme.borderRadiusFull,
-              ),
-              child: Text(
-                record.status.toUpperCase(),
-                style: TextStyle(
-                  color: color,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
+            Text('Checked in: ${_formatDateTime(record.checkInTime)}'),
+            Text('Status: ${record.status}'),
           ],
         ),
-        trailing: Icon(
-          Icons.arrow_forward_ios,
-          color: AppTheme.textLight,
-          size: 16,
-        ),
+        isThreeLine: true,
       ),
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
+  Widget _buildProfileSection(String title, List<Widget> children) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Quick Actions', style: AppTheme.headingSmall)
-            .animate()
-            .fadeIn(duration: 400.ms, delay: 300.ms)
-            .slideX(begin: 0.2, end: 0, duration: 400.ms, delay: 300.ms),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: components.ActionCard(
-                title: 'Mark Attendance',
-                subtitle: 'Check-in to active sessions',
-                icon: Icons.assignment_turned_in,
-                color: AppTheme.primaryColor,
-                onTap: () => Navigator.pushNamed(
-                  context,
-                  StudentAttendanceScreen.routeName,
-                ),
-                index: 0,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: components.ActionCard(
-                title: 'View History',
-                subtitle: 'Check attendance records',
-                icon: Icons.history,
-                color: AppTheme.secondaryColor,
-                onTap: () =>
-                    Navigator.pushNamed(context, AttendanceScreen.routeName),
-                index: 1,
-              ),
-            ),
-          ],
+        Text(
+          title,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
+        const SizedBox(height: 12),
+        Card(child: Column(children: children)),
       ],
     );
   }
 
-  Widget _buildEmptyState(String title, String message, IconData icon) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        children: [
-          Icon(icon, size: 72, color: AppTheme.textLight)
-              .animate()
-              .fadeIn(duration: 600.ms)
-              .scale(
-                begin: const Offset(0.5, 0.5),
-                end: const Offset(1, 1),
-                duration: 600.ms,
-                curve: Curves.elasticOut,
-              ),
-          const SizedBox(height: 20),
-          Text(
-            title,
-            style: AppTheme.headingSmall.copyWith(color: AppTheme.textMedium),
-          ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            style: AppTheme.bodyMedium.copyWith(color: AppTheme.textLight),
-            textAlign: TextAlign.center,
-          ).animate().fadeIn(duration: 400.ms, delay: 500.ms),
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  Widget _buildProfileItem(String label, String value) {
+    return ListTile(title: Text(label), subtitle: Text(value), dense: true);
   }
 
   String _formatTime(DateTime time) {
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
-  String _formatDateTime(DateTime time) {
-    return '${_formatDate(time)} ${_formatTime(time)}';
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${_formatTime(dateTime)}';
+  }
+
+  int _getThisWeekAttendance(List<AttendanceRecord> history) {
+    final now = DateTime.now();
+    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+    return history
+        .where((record) => record.checkInTime.isAfter(weekStart))
+        .length;
+  }
+
+  int _calculateAttendanceRate(List<AttendanceRecord> history) {
+    if (history.isEmpty) return 0;
+    // Simple calculation - in real app you'd compare with total possible sessions
+    return ((history.length / (history.length + 2)) * 100).round();
   }
 }

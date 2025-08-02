@@ -8,6 +8,8 @@ class Session {
   final double locationLon;
   final double locationRadius;
   final bool isActive;
+  final String? orgId; // Organization ID for filtering
+  final String? createdBy; // User ID of the teacher who created this session
 
   Session({
     required this.sessionId,
@@ -19,6 +21,8 @@ class Session {
     required this.locationLon,
     required this.locationRadius,
     required this.isActive,
+    this.orgId,
+    this.createdBy,
   });
 
   factory Session.fromJson(Map<String, dynamic> json) {
@@ -32,6 +36,8 @@ class Session {
       locationLon: (json['location_lon'] ?? 0).toDouble(),
       locationRadius: (json['location_radius'] ?? 0).toDouble(),
       isActive: json['is_active'] ?? false,
+      orgId: json['org_id'],
+      createdBy: json['created_by'],
     );
   }
 
@@ -45,5 +51,7 @@ class Session {
     'location_lon': locationLon,
     'location_radius': locationRadius,
     'is_active': isActive,
+    'org_id': orgId,
+    'created_by': createdBy,
   };
 }

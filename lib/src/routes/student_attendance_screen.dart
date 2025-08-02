@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import '../providers/auth_provider.dart';
 import '../providers/attendance_provider.dart';
 import '../models/session.dart';
+import '../utils/app_theme.dart';
 
 class StudentAttendanceScreen extends StatefulWidget {
   static const String routeName = '/student-attendance';
@@ -32,7 +33,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mark Attendance'),
-        backgroundColor: Colors.blue,
+        backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
       ),
       body: Column(
@@ -44,7 +45,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.blue.shade400, Colors.blue.shade600],
+                colors: [AppTheme.primaryColor, AppTheme.primaryLight],
               ),
               borderRadius: BorderRadius.circular(12),
             ),
@@ -229,18 +230,36 @@ class SessionCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _showCheckInDialog(context, session),
-                icon: const Icon(Icons.check_circle_outline),
-                label: const Text('Mark Attendance'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isLate ? Colors.orange : Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showCheckInDialog(context, session),
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('Mark Attendance'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isLate ? Colors.orange : Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 1,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showSessionDetails(context, session),
+                    icon: const Icon(Icons.info_outline),
+                    label: const Text('Details'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primaryColor,
+                      side: BorderSide(color: AppTheme.primaryColor),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -256,6 +275,13 @@ class SessionCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => CheckInDialog(session: session),
+    );
+  }
+
+  void _showSessionDetails(BuildContext context, Session session) {
+    showDialog(
+      context: context,
+      builder: (context) => SessionDetailsDialog(session: session),
     );
   }
 }
@@ -469,5 +495,142 @@ class _CheckInDialogState extends State<CheckInDialog> {
         ),
       ],
     );
+  }
+}
+
+class SessionDetailsDialog extends StatefulWidget {
+  final Session session;
+
+  const SessionDetailsDialog({super.key, required this.session});
+
+  @override
+  State<SessionDetailsDialog> createState() => _SessionDetailsDialogState();
+}
+
+class _SessionDetailsDialogState extends State<SessionDetailsDialog> {
+  Session? _detailedSession;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSessionDetails();
+  }
+
+  Future<void> _fetchSessionDetails() async {
+    try {
+      final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
+      final session = await attendanceProvider.fetchSessionDetails(widget.session.sessionId);
+      
+      setState(() {
+        _detailedSession = session;
+        _loading = false;
+        _error = session == null ? 'Failed to fetch session details' : null;
+      });
+    } catch (e) {
+      setState(() {
+        _loading = false;
+        _error = 'Error: $e';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.info_outline, color: AppTheme.primaryColor),
+          const SizedBox(width: 8),
+          const Text('Session Details'),
+        ],
+      ),
+      content: _loading
+          ? const SizedBox(
+              height: 100,
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            )
+          : _error != null
+              ? SizedBox(
+                  height: 100,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red, size: 32),
+                        const SizedBox(height: 8),
+                        Text(_error!, textAlign: TextAlign.center),
+                      ],
+                    ),
+                  ),
+                )
+              : _detailedSession != null
+                  ? SizedBox(
+                      width: double.maxFinite,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildDetailRow('Session Name', _detailedSession!.sessionName),
+                          _buildDetailRow('Description', _detailedSession!.description.isNotEmpty 
+                              ? _detailedSession!.description 
+                              : 'No description'),
+                          _buildDetailRow('Organization ID', _detailedSession!.orgId ?? 'N/A'),
+                          _buildDetailRow('Created By', _detailedSession!.createdBy ?? 'N/A'),
+                          _buildDetailRow('Start Time', _formatDateTime(_detailedSession!.startTime)),
+                          _buildDetailRow('End Time', _formatDateTime(_detailedSession!.endTime)),
+                          _buildDetailRow('Location', 
+                              'Lat: ${_detailedSession!.locationLat.toStringAsFixed(6)}\n'
+                              'Lon: ${_detailedSession!.locationLon.toStringAsFixed(6)}\n'
+                              'Radius: ${_detailedSession!.locationRadius.toStringAsFixed(0)}m'),
+                          _buildDetailRow('Status', _detailedSession!.isActive ? 'Active' : 'Inactive'),
+                        ],
+                      ),
+                    )
+                  : const Center(child: Text('No data available')),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+        if (!_loading && _error != null)
+          TextButton(
+            onPressed: _fetchSessionDetails,
+            child: const Text('Retry'),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primaryColor,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year} '
+           '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }
