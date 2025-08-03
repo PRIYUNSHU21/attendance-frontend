@@ -29,6 +29,7 @@ class AuthProvider extends ChangeNotifier {
       );
       if (response['success'] == true) {
         // The backend returns 'jwt_token' not 'token'
+        print('🔍 Login response structure: ${response.toString()}');
         _token = response['data']['jwt_token'];
         _user = User.fromJson(response['data']['user']);
         final prefs = await SharedPreferences.getInstance();

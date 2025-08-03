@@ -32,12 +32,42 @@ class Session {
       description: json['description'] ?? '',
       startTime: DateTime.parse(json['start_time']),
       endTime: DateTime.parse(json['end_time']),
-      locationLat: (json['location_lat'] ?? 0).toDouble(),
-      locationLon: (json['location_lon'] ?? 0).toDouble(),
-      locationRadius: (json['location_radius'] ?? 0).toDouble(),
+      // Backend returns latitude/longitude/radius (not location_lat/location_lon/location_radius)
+      // Use -999.0 as placeholder for missing location data
+      locationLat: (json['latitude'] ?? json['location_lat'] ?? -999.0).toDouble(),
+      locationLon: (json['longitude'] ?? json['location_lon'] ?? -999.0).toDouble(),
+      locationRadius: (json['radius'] ?? json['location_radius'] ?? 100).toDouble(),
       isActive: json['is_active'] ?? false,
       orgId: json['org_id'],
       createdBy: json['created_by'],
+    );
+  }
+
+  /// Check if session has valid location coordinates
+  bool get hasValidLocation => locationLat != -999.0 && locationLon != -999.0;
+
+  /// Get a copy of session with organization location if session location is missing
+  Session withOrganizationLocation({
+    required double orgLat,
+    required double orgLon,
+    required double orgRadius,
+  }) {
+    if (hasValidLocation) {
+      return this; // Return unchanged if session already has location
+    }
+
+    return Session(
+      sessionId: sessionId,
+      sessionName: sessionName,
+      description: description,
+      startTime: startTime,
+      endTime: endTime,
+      locationLat: orgLat,
+      locationLon: orgLon,
+      locationRadius: orgRadius,
+      isActive: isActive,
+      orgId: orgId,
+      createdBy: createdBy,
     );
   }
 
@@ -47,9 +77,9 @@ class Session {
     'description': description,
     'start_time': startTime.toIso8601String(),
     'end_time': endTime.toIso8601String(),
-    'location_lat': locationLat,
-    'location_lon': locationLon,
-    'location_radius': locationRadius,
+    'latitude': locationLat,
+    'longitude': locationLon,
+    'radius': locationRadius,
     'is_active': isActive,
     'org_id': orgId,
     'created_by': createdBy,

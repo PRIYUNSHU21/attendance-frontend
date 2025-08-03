@@ -23,13 +23,34 @@ class AttendanceRecord {
     return AttendanceRecord(
       recordId: json['record_id'] ?? '',
       userId: json['user_id'] ?? '',
-      sessionId: json['session_id'] ?? '',
-      checkInTime: DateTime.parse(json['check_in_time']),
+      sessionId: json['session_id'] ?? '', // May be null in new format
+      checkInTime: DateTime.parse(json['check_in_time'] ?? json['timestamp'] ?? DateTime.now().toIso8601String()),
       checkOutTime: json['check_out_time'] != null ? DateTime.tryParse(json['check_out_time']) : null,
       status: json['status'] ?? '',
-      lat: (json['location']?['lat'] ?? 0).toDouble(),
-      lon: (json['location']?['lon'] ?? 0).toDouble(),
+      // Handle both old and new location formats
+      lat: _parseCoordinate(json, 'lat', 'latitude'),
+      lon: _parseCoordinate(json, 'lon', 'longitude'),
     );
+  }
+
+  // Helper method to parse coordinates from different formats
+  static double _parseCoordinate(Map<String, dynamic> json, String oldKey, String newKey) {
+    // Try new format first (direct latitude/longitude fields)
+    if (json[newKey] != null) {
+      return (json[newKey] is String) 
+        ? double.tryParse(json[newKey]) ?? 0.0 
+        : (json[newKey] as num).toDouble();
+    }
+    
+    // Try nested location object format
+    if (json['location'] != null && json['location'][oldKey] != null) {
+      final locationValue = json['location'][oldKey];
+      return (locationValue is String) 
+        ? double.tryParse(locationValue) ?? 0.0 
+        : (locationValue as num).toDouble();
+    }
+    
+    return 0.0;
   }
 
   Map<String, dynamic> toJson() => {

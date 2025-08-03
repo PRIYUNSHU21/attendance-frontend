@@ -299,6 +299,7 @@ class _CheckInDialogState extends State<CheckInDialog> {
   bool _loading = false;
   double? _lat;
   double? _lon;
+  double? _altitude;
   String? _locationStatus;
 
   @override
@@ -348,21 +349,69 @@ class _CheckInDialogState extends State<CheckInDialog> {
         return;
       }
 
-      // Get position
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 15),
-      );
+      // Get position with more specific settings
+      print('🔍 Attempting to get current position...');
+      print('   Desired accuracy: HIGH');
+      print('   Timeout: 15 seconds');
+      
+      Position position;
+      try {
+        // First try: High accuracy with longer timeout
+        position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 30), // Increased timeout
+          forceAndroidLocationManager: false,
+        );
+        
+        // Check if accuracy is acceptable (within 100m)
+        if (position.accuracy > 100) {
+          print('⚠️ Low accuracy (${position.accuracy}m), trying again...');
+          throw Exception('Accuracy too low: ${position.accuracy}m');
+        }
+        
+      } catch (timeoutError) {
+        print('⏱️ High accuracy failed: $timeoutError');
+        print('🔄 Trying best accuracy...');
+        
+        try {
+          position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.best,
+            timeLimit: const Duration(seconds: 20),
+          );
+        } catch (bestError) {
+          print('⏱️ Best accuracy failed: $bestError');
+          print('🔄 Trying medium accuracy as last resort...');
+          
+          position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.medium,
+            timeLimit: const Duration(seconds: 10),
+          );
+        }
+      }
+      
+      print('📍 Raw position received:');
+      print('   Latitude: ${position.latitude}');
+      print('   Longitude: ${position.longitude}');
+      print('   Accuracy: ${position.accuracy}m');
+      print('   Altitude: ${position.altitude}');
+      print('   Timestamp: ${position.timestamp}');
 
       // Calculate distance from session location
       double sessionLat = widget.session.locationLat;
       double sessionLon = widget.session.locationLon;
+      
+      // Debug: Print session coordinates
+      print('🔍 Session coordinates: ($sessionLat, $sessionLon)');
+      print('📍 User coordinates: (${position.latitude}, ${position.longitude})');
+      
       double distance = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
         sessionLat,
         sessionLon,
       );
+      
+      print('📏 Calculated distance: ${distance}m');
 
       double radius = widget.session.locationRadius;
       bool withinRange = distance <= radius;
@@ -370,9 +419,27 @@ class _CheckInDialogState extends State<CheckInDialog> {
       setState(() {
         _lat = position.latitude;
         _lon = position.longitude;
-        _locationStatus = withinRange
-            ? '✅ You are within range (${distance.round()}m from session)'
-            : '❌ You are ${distance.round()}m away (max ${radius.round()}m)';
+        _altitude = position.altitude;
+        
+        // Check if we got approximate/IP-based location (indicating a location accuracy issue)
+        bool isApproximateLocation = position.accuracy > 100 || 
+                                   ((position.latitude > 22.5 && position.latitude < 22.7) && 
+                                    (position.longitude > 88.3 && position.longitude < 88.4));
+        
+        if (isApproximateLocation) {
+          print('⚠️ WARNING: Location appears to be approximate/IP-based!');
+          print('   Accuracy: ${position.accuracy}m (should be <100m for GPS)');
+          print('   Coordinates: ${position.latitude}, ${position.longitude}');
+          print('   This indicates browser is using WiFi/IP location instead of GPS');
+          
+          _locationStatus = '⚠️ Using approximate location (${position.accuracy.round()}m accuracy). '
+                           'For better accuracy, enable precise location in browser settings.';
+        } else {
+          _locationStatus = withinRange
+              ? '✅ You are within range (${distance.round()}m from session)'
+              : '❌ You are ${distance.round()}m away (max ${radius.round()}m)';
+        }
+        
         _loading = false;
       });
     } catch (e) {
@@ -383,11 +450,184 @@ class _CheckInDialogState extends State<CheckInDialog> {
     }
   }
 
-  Future<void> _checkIn() async {
+  Future<void> _requestLocationForAttendance() async {
+    setState(() {
+      _loading = true;
+      _locationStatus = 'Requesting location permission for attendance...';
+    });
+
+    try {
+      // Always check location services first
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() {
+          _locationStatus = 'Location services disabled. Please enable location services in your browser.';
+          _loading = false;
+        });
+        
+        // Show user dialog to enable location
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Location Services Required'),
+              content: const Text(
+                'Location services are disabled. Please enable location access in your browser to mark attendance.\n\n'
+                '1. Click the location icon in your browser\'s address bar\n'
+                '2. Select "Always allow" for this site\n'
+                '3. Refresh the page if needed'
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+
+      // Always request permission explicitly for attendance marking
+      print('🔐 Checking location permissions...');
+      LocationPermission permission = await Geolocator.checkPermission();
+      
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        print('🔐 Requesting location permission...');
+        permission = await Geolocator.requestPermission();
+        
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            _locationStatus = 'Location permission denied. Please allow location access to mark attendance.';
+            _loading = false;
+          });
+          
+          // Show permission dialog
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Location Permission Required'),
+                content: const Text(
+                  'Location access is required to verify your attendance.\n\n'
+                  'Please click "Allow" when your browser asks for location permission.'
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _requestLocationForAttendance(); // Try again
+                    },
+                    child: const Text('Try Again'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                ],
+              ),
+            );
+          }
+          return;
+        }
+
+        if (permission == LocationPermission.deniedForever) {
+          setState(() {
+            _locationStatus = 'Location permission permanently denied. Please enable in browser settings.';
+            _loading = false;
+          });
+          
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Location Permission Blocked'),
+                content: const Text(
+                  'Location permission has been permanently denied. To mark attendance:\n\n'
+                  '1. Click the location icon in your browser\'s address bar\n'
+                  '2. Change the setting to "Allow"\n'
+                  '3. Refresh the page'
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      // Get fresh location for attendance
+      print('📍 Getting fresh location for attendance...');
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
+      );
+
+      setState(() {
+        _lat = position.latitude;
+        _lon = position.longitude;
+        _altitude = position.altitude;
+        _locationStatus = 'Location updated for attendance marking';
+        _loading = false;
+      });
+
+      print('✅ Fresh location obtained for attendance:');
+      print('   Latitude: ${position.latitude}');
+      print('   Longitude: ${position.longitude}');
+      print('   Accuracy: ${position.accuracy}m');
+
+    } catch (e) {
+      setState(() {
+        _locationStatus = 'Error getting location: $e';
+        _loading = false;
+      });
+      
+      print('❌ Location error: $e');
+      
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Location Error'),
+            content: Text(
+              'Unable to get your location:\n$e\n\n'
+              'Please ensure location services are enabled and try again.'
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _requestLocationForAttendance(); // Try again
+                },
+                child: const Text('Try Again'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _markAttendance() async {
+    // Always request fresh location for attendance marking
+    await _requestLocationForAttendance();
+    
     if (_lat == null || _lon == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Location not available. Please try again.'),
+          content: Text('Location access is required to mark attendance. Please allow location permissions.'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 4),
         ),
       );
       return;
@@ -396,29 +636,49 @@ class _CheckInDialogState extends State<CheckInDialog> {
     setState(() => _loading = true);
 
     final attendance = Provider.of<AttendanceProvider>(context, listen: false);
-    final success = await attendance.checkIn(
+
+    // Use the new simplified attendance system
+    final result = await attendance.markAttendance(
       widget.session.sessionId,
       _lat!,
       _lon!,
+      altitude: _altitude, // Include altitude if available
     );
 
     setState(() => _loading = false);
 
-    if (success) {
+    if (result != null) {
       Navigator.pop(context);
+
+      // Show detailed success message with status and distance
+      final status = result['status'] ?? 'present';
+      final distance = result['distance']?.toStringAsFixed(1) ?? 'unknown';
+      final organization = result['organization'] ?? '';
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Attendance marked successfully!'),
+        SnackBar(
+          content: Text(
+            '✅ Attendance marked successfully!\n'
+            'Status: ${status.toUpperCase()}\n'
+            'Distance: ${distance}m\n'
+            '${organization.isNotEmpty ? 'Organization: $organization' : ''}',
+          ),
           backgroundColor: Colors.green,
+          duration: const Duration(seconds: 4),
         ),
       );
+
       // Refresh the sessions list
       attendance.fetchActiveSessions();
     } else {
+      // Show detailed error message
+      String errorMessage = attendance.error ?? "Failed to mark attendance";
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ ${attendance.error ?? "Failed to mark attendance"}'),
+          content: Text('❌ $errorMessage'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
         ),
       );
     }
@@ -434,6 +694,32 @@ class _CheckInDialogState extends State<CheckInDialog> {
           Text(
             widget.session.sessionName,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          
+          // Location permission notice
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.location_on, color: Colors.blue.shade600, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Location access required to verify attendance',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -475,6 +761,20 @@ class _CheckInDialogState extends State<CheckInDialog> {
               'Your location: ${_lat!.toStringAsFixed(6)}, ${_lon!.toStringAsFixed(6)}',
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
+            const SizedBox(height: 4),
+            Text(
+              'Session location: ${widget.session.locationLat.toStringAsFixed(6)}, ${widget.session.locationLon.toStringAsFixed(6)}',
+              style: const TextStyle(fontSize: 12, color: Colors.orange),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: _loading ? null : _getCurrentLocation,
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('Refresh Location'),
+              style: TextButton.styleFrom(
+                textStyle: const TextStyle(fontSize: 12),
+              ),
+            ),
           ],
         ],
       ),
@@ -484,14 +784,25 @@ class _CheckInDialogState extends State<CheckInDialog> {
           child: const Text('Cancel'),
         ),
         ElevatedButton(
-          onPressed: _loading || _lat == null || _lon == null ? null : _checkIn,
+          onPressed: _loading || _lat == null || _lon == null
+              ? null
+              : _markAttendance,
           child: _loading
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(_locationStatus?.contains('permission') == true 
+                        ? 'Requesting Permission...' 
+                        : 'Getting Location...'),
+                  ],
                 )
-              : const Text('Check In'),
+              : const Text('Mark Attendance'),
         ),
       ],
     );
@@ -520,9 +831,14 @@ class _SessionDetailsDialogState extends State<SessionDetailsDialog> {
 
   Future<void> _fetchSessionDetails() async {
     try {
-      final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
-      final session = await attendanceProvider.fetchSessionDetails(widget.session.sessionId);
-      
+      final attendanceProvider = Provider.of<AttendanceProvider>(
+        context,
+        listen: false,
+      );
+      final session = await attendanceProvider.fetchSessionDetails(
+        widget.session.sessionId,
+      );
+
       setState(() {
         _detailedSession = session;
         _loading = false;
@@ -549,48 +865,69 @@ class _SessionDetailsDialogState extends State<SessionDetailsDialog> {
       content: _loading
           ? const SizedBox(
               height: 100,
-              child: Center(
-                child: CircularProgressIndicator(),
-              ),
+              child: Center(child: CircularProgressIndicator()),
             )
           : _error != null
-              ? SizedBox(
-                  height: 100,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, color: Colors.red, size: 32),
-                        const SizedBox(height: 8),
-                        Text(_error!, textAlign: TextAlign.center),
-                      ],
-                    ),
+          ? SizedBox(
+              height: 100,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.red, size: 32),
+                    const SizedBox(height: 8),
+                    Text(_error!, textAlign: TextAlign.center),
+                  ],
+                ),
+              ),
+            )
+          : _detailedSession != null
+          ? SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDetailRow(
+                    'Session Name',
+                    _detailedSession!.sessionName,
                   ),
-                )
-              : _detailedSession != null
-                  ? SizedBox(
-                      width: double.maxFinite,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildDetailRow('Session Name', _detailedSession!.sessionName),
-                          _buildDetailRow('Description', _detailedSession!.description.isNotEmpty 
-                              ? _detailedSession!.description 
-                              : 'No description'),
-                          _buildDetailRow('Organization ID', _detailedSession!.orgId ?? 'N/A'),
-                          _buildDetailRow('Created By', _detailedSession!.createdBy ?? 'N/A'),
-                          _buildDetailRow('Start Time', _formatDateTime(_detailedSession!.startTime)),
-                          _buildDetailRow('End Time', _formatDateTime(_detailedSession!.endTime)),
-                          _buildDetailRow('Location', 
-                              'Lat: ${_detailedSession!.locationLat.toStringAsFixed(6)}\n'
-                              'Lon: ${_detailedSession!.locationLon.toStringAsFixed(6)}\n'
-                              'Radius: ${_detailedSession!.locationRadius.toStringAsFixed(0)}m'),
-                          _buildDetailRow('Status', _detailedSession!.isActive ? 'Active' : 'Inactive'),
-                        ],
-                      ),
-                    )
-                  : const Center(child: Text('No data available')),
+                  _buildDetailRow(
+                    'Description',
+                    _detailedSession!.description.isNotEmpty
+                        ? _detailedSession!.description
+                        : 'No description',
+                  ),
+                  _buildDetailRow(
+                    'Organization ID',
+                    _detailedSession!.orgId ?? 'N/A',
+                  ),
+                  _buildDetailRow(
+                    'Created By',
+                    _detailedSession!.createdBy ?? 'N/A',
+                  ),
+                  _buildDetailRow(
+                    'Start Time',
+                    _formatDateTime(_detailedSession!.startTime),
+                  ),
+                  _buildDetailRow(
+                    'End Time',
+                    _formatDateTime(_detailedSession!.endTime),
+                  ),
+                  _buildDetailRow(
+                    'Location',
+                    'Lat: ${_detailedSession!.locationLat.toStringAsFixed(6)}\n'
+                        'Lon: ${_detailedSession!.locationLon.toStringAsFixed(6)}\n'
+                        'Radius: ${_detailedSession!.locationRadius.toStringAsFixed(0)}m',
+                  ),
+                  _buildDetailRow(
+                    'Status',
+                    _detailedSession!.isActive ? 'Active' : 'Inactive',
+                  ),
+                ],
+              ),
+            )
+          : const Center(child: Text('No data available')),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -620,10 +957,7 @@ class _SessionDetailsDialogState extends State<SessionDetailsDialog> {
             ),
           ),
           const SizedBox(height: 2),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 14),
-          ),
+          Text(value, style: const TextStyle(fontSize: 14)),
         ],
       ),
     );
@@ -631,6 +965,6 @@ class _SessionDetailsDialogState extends State<SessionDetailsDialog> {
 
   String _formatDateTime(DateTime dateTime) {
     return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year} '
-           '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+        '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }

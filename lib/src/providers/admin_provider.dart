@@ -4,6 +4,7 @@ import '../models/session.dart';
 import '../models/user.dart';
 import '../models/organization.dart';
 import 'auth_provider.dart';
+import 'attendance_provider.dart';
 
 class AdminProvider extends ChangeNotifier {
   final AuthProvider? authProvider;
@@ -16,6 +17,16 @@ class AdminProvider extends ChangeNotifier {
   String? _error;
 
   AdminProvider({this.authProvider});
+
+  // Format datetime for backend (no milliseconds, no timezone)
+  String formatDateTimeForBackend(DateTime dateTime) {
+    return '${dateTime.year.toString().padLeft(4, '0')}-'
+        '${dateTime.month.toString().padLeft(2, '0')}-'
+        '${dateTime.day.toString().padLeft(2, '0')}T'
+        '${dateTime.hour.toString().padLeft(2, '0')}:'
+        '${dateTime.minute.toString().padLeft(2, '0')}:'
+        '${dateTime.second.toString().padLeft(2, '0')}';
+  }
 
   Map<String, dynamic>? get dashboardStats => _dashboardStats;
   List<User> get users => _users;
@@ -85,6 +96,17 @@ class AdminProvider extends ChangeNotifier {
         _sessions = (response['data'] as List)
             .map((sessionData) => Session.fromJson(sessionData))
             .toList();
+
+        // Sort sessions: Active sessions first, then by newest first (start time descending)
+        _sessions.sort((a, b) {
+          // First sort by active status (active sessions first)
+          if (a.isActive != b.isActive) {
+            return b.isActive ? 1 : -1; // b.isActive first
+          }
+          // Then sort by start time (newest first)
+          return b.startTime.compareTo(a.startTime);
+        });
+
         _error = null;
       } else {
         _error = response['message'] ?? 'Failed to fetch sessions';
@@ -100,7 +122,7 @@ class AdminProvider extends ChangeNotifier {
   Future<Session?> fetchSessionDetails(String sessionId) async {
     try {
       final response = await ApiService.get('/attendance/sessions/$sessionId');
-      
+
       if (response['success'] == true) {
         return Session.fromJson(response['data']);
       } else {
@@ -120,45 +142,88 @@ class AdminProvider extends ChangeNotifier {
     required String description,
     required DateTime startTime,
     required DateTime endTime,
-    // Removed location parameters as per backend fixes
-    // required double locationLat,
-    // required double locationLon,
-    // required double locationRadius,
+    // Optional custom location parameters for individual session locations
+    double? customLat,
+    double? customLon,
+    double? customRadius,
   }) async {
     _loading = true;
     notifyListeners();
 
-    final sessionData = {
-      'session_name': sessionName,
-      'description': description,
-      'start_time': startTime.toIso8601String(),
-      'end_time': endTime.toIso8601String(),
-      // Removed location fields as per backend schema changes
-      // 'location_lat': locationLat,
-      // 'location_lon': locationLon,
-      // 'location_radius': locationRadius,
-    };
+    try {
+      final sessionData = <String, dynamic>{
+        'session_name': sessionName,
+        'description': description,
+        'start_time': formatDateTimeForBackend(startTime),
+        'end_time': formatDateTimeForBackend(endTime),
+      };
 
-    print('🚀 Creating session with data: $sessionData');
+      // Priority: Custom location > Organization location > No location
+      if (customLat != null && customLon != null) {
+        // Use custom session location - backend expects number format
+        sessionData['latitude'] = customLat;
+        sessionData['longitude'] = customLon;
+        sessionData['radius'] = customRadius ?? 100;
 
-    final response = await ApiService.post(
-      '/admin/sessions',
-      body: sessionData,
-    );
+        print(
+          '📍 Using custom session location: ($customLat, $customLon) '
+          'radius: ${customRadius ?? 100}m',
+        );
+      } else {
+        // Fallback to organization location (existing logic)
+        print('🔍 Fetching organization location for session creation...');
+        final attendanceProvider = AttendanceProvider();
+        final orgLocation = await attendanceProvider.fetchOrganizationLocation();
 
-    print('📡 Session creation response: ${response.toString()}');
+        // Add organization location to session if available
+        if (orgLocation != null &&
+            orgLocation['location'] != null &&
+            orgLocation['location']['latitude'] != null &&
+            orgLocation['location']['longitude'] != null) {
+          // Backend expects number format, not string
+          sessionData['latitude'] = (orgLocation['location']['latitude']).toDouble();
+          sessionData['longitude'] = (orgLocation['location']['longitude']).toDouble();
+          sessionData['radius'] = (orgLocation['location']['radius'] ?? 100).toDouble();
 
-    _loading = false;
-    if (response['success'] == true) {
-      _error = null;
-      print('✅ Session created successfully!');
-      // Refresh sessions list
-      fetchSessions();
-      notifyListeners();
-      return true;
-    } else {
-      _error = response['message'];
-      print('❌ Session creation failed: $_error');
+          print(
+            '📍 Including organization location in session: '
+            '(${orgLocation['location']['latitude']}, ${orgLocation['location']['longitude']}) '
+            'radius: ${orgLocation['location']['radius'] ?? 100}m',
+          );
+        } else {
+          print(
+            '⚠️ No organization location found, session will be created without location data',
+          );
+        }
+      }
+
+      print('🚀 Creating session with data: $sessionData');
+
+      final response = await ApiService.post(
+        '/admin/sessions',
+        body: sessionData,
+      );
+
+      print('📡 Session creation response: ${response.toString()}');
+
+      _loading = false;
+      if (response['success'] == true) {
+        _error = null;
+        print('✅ Session created successfully!');
+        // Refresh sessions list
+        fetchSessions();
+        notifyListeners();
+        return true;
+      } else {
+        _error = response['message'];
+        print('❌ Session creation failed: $_error');
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _loading = false;
+      _error = 'Error creating session: $e';
+      print('❌ Exception during session creation: $e');
       notifyListeners();
       return false;
     }
@@ -182,8 +247,9 @@ class AdminProvider extends ChangeNotifier {
     final body = <String, dynamic>{};
     if (sessionName != null) body['session_name'] = sessionName;
     if (description != null) body['description'] = description;
-    if (startTime != null) body['start_time'] = startTime.toIso8601String();
-    if (endTime != null) body['end_time'] = endTime.toIso8601String();
+    if (startTime != null)
+      body['start_time'] = formatDateTimeForBackend(startTime);
+    if (endTime != null) body['end_time'] = formatDateTimeForBackend(endTime);
     // Removed location field assignments as per backend schema changes
     // if (locationLat != null) body['location_lat'] = locationLat;
     // if (locationLon != null) body['location_lon'] = locationLon;
@@ -663,5 +729,72 @@ class AdminProvider extends ChangeNotifier {
     _loading = false;
     notifyListeners();
     return false;
+  }
+
+  // User management methods for admin-only features
+  Future<List<Map<String, dynamic>>> getAllUsers(String orgId) async {
+    _loading = true;
+    notifyListeners();
+
+    try {
+      // TODO: Implement actual API call when backend is ready
+      // final response = await ApiService.get('/admin/organization/$orgId/users');
+
+      // For now, return mock data for demo purposes
+      await Future.delayed(const Duration(seconds: 1));
+
+      final mockUsers = [
+        {
+          'id': '1',
+          'name': 'John Doe',
+          'email': 'john@example.com',
+          'role': 'student',
+        },
+        {
+          'id': '2',
+          'name': 'Jane Smith',
+          'email': 'jane@example.com',
+          'role': 'teacher',
+        },
+        {
+          'id': '3',
+          'name': 'Admin User',
+          'email': 'admin@example.com',
+          'role': 'admin',
+        },
+      ];
+
+      _loading = false;
+      notifyListeners();
+      return mockUsers;
+    } catch (e) {
+      _error = 'Failed to load users: $e';
+      _loading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<void> updateUserRole(String userId, String newRole) async {
+    _loading = true;
+    notifyListeners();
+
+    try {
+      // TODO: Implement actual API call when backend is ready
+      // final response = await ApiService.put('/admin/users/$userId/role', {
+      //   'role': newRole,
+      // });
+
+      // For now, simulate API call
+      await Future.delayed(const Duration(seconds: 1));
+
+      _loading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to update user role: $e';
+      _loading = false;
+      notifyListeners();
+      rethrow;
+    }
   }
 }

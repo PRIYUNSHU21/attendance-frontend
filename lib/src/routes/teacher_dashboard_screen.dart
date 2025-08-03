@@ -8,6 +8,8 @@ import '../models/session.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/components/animated_cards.dart' as components;
+import 'admin_dashboard_screen.dart';
+import 'organization_location_setup_screen.dart';
 import 'session_management_screen.dart';
 
 class TeacherDashboardScreen extends StatefulWidget {
@@ -73,12 +75,28 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               .fadeIn(duration: 400.ms, delay: 100.ms)
               .slideY(begin: -0.2, end: 0, duration: 400.ms, delay: 100.ms),
 
+          // Location Setup shortcut
+          IconButton(
+                icon: const Icon(Icons.location_on),
+                tooltip: 'Setup Location',
+                onPressed: () => Navigator.pushNamed(
+                  context,
+                  OrganizationLocationSetupScreen.routeName,
+                ),
+              )
+              .animate()
+              .fadeIn(duration: 400.ms, delay: 150.ms)
+              .slideY(begin: -0.2, end: 0, duration: 400.ms, delay: 150.ms),
+
           // Admin panel shortcut if user is admin
           if (auth.user?.role == 'admin')
             IconButton(
                   icon: const Icon(Icons.admin_panel_settings),
                   tooltip: 'Admin Panel',
-                  onPressed: () => Navigator.pushNamed(context, '/admin'),
+                  onPressed: () => Navigator.pushNamed(
+                    context,
+                    AdminDashboardScreen.routeName,
+                  ),
                 )
                 .animate()
                 .fadeIn(duration: 400.ms, delay: 200.ms)
@@ -622,9 +640,23 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
           ],
         ),
         const SizedBox(height: 16),
-        // Add a students management card
+        // Add organization management cards
         Row(
           children: [
+            Expanded(
+              child: components.ActionCard(
+                title: 'Location Setup',
+                subtitle: 'Configure attendance boundaries',
+                icon: Icons.location_on,
+                color: Colors.blue,
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  OrganizationLocationSetupScreen.routeName,
+                ),
+                index: 2,
+              ),
+            ),
+            const SizedBox(width: 16),
             Expanded(
               child: components.ActionCard(
                 title: 'View Students',
@@ -632,7 +664,23 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                 icon: Icons.people,
                 color: AppTheme.successColor,
                 onTap: () => Navigator.pushNamed(context, '/students-list'),
-                index: 2,
+                index: 3,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // Add a students management card
+        Row(
+          children: [
+            Expanded(
+              child: components.ActionCard(
+                title: 'Attendance Records',
+                subtitle: 'View student attendance details',
+                icon: Icons.fact_check,
+                color: AppTheme.successColor,
+                onTap: () => Navigator.pushNamed(context, '/attendance-records'),
+                index: 4,
               ),
             ),
             const SizedBox(width: 16),
@@ -643,7 +691,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                 icon: Icons.history,
                 color: AppTheme.warningColor,
                 onTap: () => Navigator.pushNamed(context, '/analytics'),
-                index: 3,
+                index: 5,
               ),
             ),
           ],

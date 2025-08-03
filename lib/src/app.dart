@@ -15,6 +15,11 @@ import 'routes/organization_onboarding_screen.dart';
 import 'routes/students_list_screen.dart';
 import 'routes/session_debug_screen.dart';
 import 'routes/browse_sessions_screen.dart';
+import 'routes/admin_dashboard_screen.dart';
+import 'routes/organization_location_setup_screen.dart';
+import 'routes/organization_attendance_screen.dart';
+import 'routes/user_management_screen.dart';
+import 'routes/attendance_records_screen.dart';
 import 'utils/app_theme.dart';
 
 // Configure global animation defaults
@@ -58,6 +63,16 @@ class AttendanceApp extends StatelessWidget {
         SessionDebugScreen.routeName: (context) => const SessionDebugScreen(),
         BrowseSessionsScreen.routeName: (context) =>
             const BrowseSessionsScreen(),
+        AdminDashboardScreen.routeName: (context) =>
+            const AdminDashboardScreen(),
+        OrganizationLocationSetupScreen.routeName: (context) =>
+            const OrganizationLocationSetupScreen(),
+        OrganizationAttendanceScreen.routeName: (context) =>
+            const OrganizationAttendanceScreen(),
+        UserManagementScreen.routeName: (context) =>
+            const UserManagementScreen(),
+        AttendanceRecordsScreen.routeName: (context) =>
+            const AttendanceRecordsScreen(),
       },
     );
   }

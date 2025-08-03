@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import '../providers/admin_provider.dart';
 import '../models/session.dart';
+import '../utils/location_utils.dart';
 import '../utils/app_theme.dart';
 
 class SessionManagementScreen extends StatefulWidget {
@@ -212,12 +213,17 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
-  late TextEditingController _radiusController;
   DateTime? _startTime;
   DateTime? _endTime;
-  double? _lat;
-  double? _lon;
   bool _loading = false;
+  
+  // Location capture state
+  bool _useCustomLocation = false;
+  bool _fetchingLocation = false;
+  double? _sessionLat;
+  double? _sessionLon;
+  String? _locationStatus;
+  
   @override
   void initState() {
     super.initState();
@@ -227,14 +233,9 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
     _descriptionController = TextEditingController(
       text: widget.session?.description ?? '',
     );
-    _radiusController = TextEditingController(
-      text: widget.session?.locationRadius.toString() ?? '100',
-    );
     if (widget.session != null) {
       _startTime = widget.session!.startTime;
       _endTime = widget.session!.endTime;
-      _lat = widget.session!.locationLat;
-      _lon = widget.session!.locationLon;
     }
   }
 
@@ -242,274 +243,53 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
-    _radiusController.dispose();
     super.dispose();
   }
 
-  Future<void> _getCurrentLocation() async {
-    setState(() => _loading = true);
+  /// Capture current location for the session
+  Future<void> _captureCurrentLocation() async {
+    setState(() => _fetchingLocation = true);
     try {
-      // Check if location services are enabled
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Location services are disabled. Please enable location in your browser settings.',
-              ),
-              duration: Duration(seconds: 5),
-            ),
-          );
-        }
-        _showLocationFallbackDialog();
-        return;
-      }
-      // Check current permission status
+      // Check location permissions
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
-        // Request permission
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Location permission denied. Please allow location access when prompted by your browser.',
-                ),
-                duration: Duration(seconds: 5),
-              ),
-            );
-          }
-          _showLocationFallbackDialog();
-          return;
+          throw Exception('Location permissions are denied');
         }
       }
+      
       if (permission == LocationPermission.deniedForever) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Location permissions are permanently denied. Please enable them in browser settings (click the lock icon in the address bar).',
-              ),
-              duration: Duration(seconds: 7),
-            ),
-          );
-        }
-        _showLocationFallbackDialog();
-        return;
+        throw Exception('Location permissions are permanently denied');
       }
-      // Try to get current position with multiple accuracy levels
-      Position position;
-      // First try high accuracy with shorter timeout
-      try {
-        position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-          timeLimit: const Duration(seconds: 15),
-        );
-      } catch (e) {
-        // Fallback to medium accuracy
-        try {
-          position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.medium,
-            timeLimit: const Duration(seconds: 10),
-          );
-        } catch (e) {
-          // Final fallback to low accuracy
-          try {
-            position = await Geolocator.getCurrentPosition(
-              desiredAccuracy: LocationAccuracy.low,
-              timeLimit: const Duration(seconds: 5),
-            );
-          } catch (e) {
-            rethrow; // Re-throw to be caught by outer catch
-          }
-        }
+
+      // Get current position
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
+      );
+
+      // Validate coordinates
+      if (!LocationUtils.areValidCoordinates(position.latitude, position.longitude)) {
+        throw Exception('Invalid coordinates received');
       }
-      if (mounted) {
-        setState(() {
-          _lat = position.latitude;
-          _lon = position.longitude;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Location captured: ${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}',
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+
+      setState(() {
+        _sessionLat = position.latitude;
+        _sessionLon = position.longitude;
+        _locationStatus = '📍 Location captured: '
+            '${LocationUtils.formatCoordinate(position.latitude)}, '
+            '${LocationUtils.formatCoordinate(position.longitude)}';
+        _fetchingLocation = false;
+      });
     } catch (e) {
-      String errorMessage = 'Could not get location: ';
-      if (e.toString().contains('timeout') ||
-          e.toString().contains('TIMEOUT')) {
-        errorMessage +=
-            'Request timed out. Please try again or check your internet connection.';
-      } else if (e.toString().contains('permission') ||
-          e.toString().contains('PERMISSION')) {
-        errorMessage +=
-            'Permission denied. Please allow location access in your browser.';
-      } else if (e.toString().contains('POSITION_UNAVAILABLE')) {
-        errorMessage +=
-            'Position unavailable. Please check your GPS/location settings.';
-      } else {
-        errorMessage += e.toString();
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-      // Show fallback dialog
-      _showLocationFallbackDialog();
-    } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      setState(() {
+        _locationStatus = '❌ Failed to get location: $e';
+        _fetchingLocation = false;
+        _sessionLat = null;
+        _sessionLon = null;
+      });
     }
-  }
-
-  void _showLocationFallbackDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Location Access Issue'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Could not get your current location automatically.'),
-            SizedBox(height: 8),
-            Text('To fix this:'),
-            SizedBox(height: 4),
-            Text('• Click the location icon in your browser\'s address bar'),
-            Text('• Select "Allow" for location access'),
-            Text('• Try again'),
-            SizedBox(height: 12),
-            Text('Or use one of the options below:'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showManualLocationDialog();
-            },
-            child: const Text('Enter Manual'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _lat = 40.7128; // New York coordinates for testing
-                _lon = -74.0060;
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Using default location (New York) for testing',
-                  ),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            },
-            child: const Text('Use Default'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showManualLocationDialog() {
-    final latController = TextEditingController(text: _lat?.toString() ?? '');
-    final lonController = TextEditingController(text: _lon?.toString() ?? '');
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Enter Location Manually'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Enter latitude and longitude coordinates:'),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: latController,
-              decoration: const InputDecoration(
-                labelText: 'Latitude',
-                hintText: 'e.g., 40.7128',
-              ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: lonController,
-              decoration: const InputDecoration(
-                labelText: 'Longitude',
-                hintText: 'e.g., -74.0060',
-              ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Popular locations:\n• New York: 40.7128, -74.0060\n• London: 51.5074, -0.1278\n• Tokyo: 35.6762, 139.6503',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final lat = double.tryParse(latController.text);
-              final lon = double.tryParse(lonController.text);
-              if (lat != null &&
-                  lon != null &&
-                  lat >= -90 &&
-                  lat <= 90 &&
-                  lon >= -180 &&
-                  lon <= 180) {
-                setState(() {
-                  _lat = lat;
-                  _lon = lon;
-                });
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Location set to: ${lat.toStringAsFixed(6)}, ${lon.toStringAsFixed(6)}',
-                    ),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter valid coordinates'),
-                  ),
-                );
-              }
-            },
-            child: const Text('Set Location'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _selectDateTime(bool isStart) async {
@@ -551,12 +331,15 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
       );
       return;
     }
-    if (_lat == null || _lon == null) {
+    
+    // Validate custom location if enabled
+    if (_useCustomLocation && (_sessionLat == null || _sessionLon == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please get current location')),
+        const SnackBar(content: Text('Please capture location or disable custom location')),
       );
       return;
     }
+    
     setState(() => _loading = true);
     final admin = Provider.of<AdminProvider>(context, listen: false);
     bool success;
@@ -574,16 +357,15 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
         // locationRadius: double.parse(_radiusController.text),
       );
     } else {
-      // Create new session
+      // Create new session with optional custom location
       success = await admin.createSession(
         sessionName: _nameController.text,
         description: _descriptionController.text,
         startTime: _startTime!,
         endTime: _endTime!,
-        // Removed location parameters as per backend schema changes
-        // locationLat: _lat!,
-        // locationLon: _lon!,
-        // locationRadius: double.parse(_radiusController.text),
+        customLat: _useCustomLocation ? _sessionLat : null,
+        customLon: _useCustomLocation ? _sessionLon : null,
+        customRadius: _useCustomLocation ? 100.0 : null, // Default 100m radius
       );
     }
     setState(() => _loading = false);
@@ -669,94 +451,101 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
                 ],
               ),
               const SizedBox(height: 16),
-              Text('Location:', style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
+              
+              // Custom Location Section
+              CheckboxListTile(
+                title: const Text('Set Custom Location for This Session'),
+                subtitle: const Text('Capture current location instead of using organization default'),
+                value: _useCustomLocation,
+                onChanged: widget.session != null ? null : (value) {
+                  setState(() => _useCustomLocation = value ?? false);
+                  if (_useCustomLocation) {
+                    _captureCurrentLocation();
+                  } else {
+                    _sessionLat = null;
+                    _sessionLon = null;
+                    _locationStatus = null;
+                  }
+                },
+                contentPadding: EdgeInsets.zero,
+              ),
+
+              if (_useCustomLocation && widget.session == null) ...[
+                const SizedBox(height: 8),
+                Row(
                   children: [
-                    Text(
-                      _lat != null && _lon != null
-                          ? 'Lat: ${_lat!.toStringAsFixed(6)}, Lon: ${_lon!.toStringAsFixed(6)}'
-                          : 'No location selected',
-                      style: TextStyle(
-                        color: _lat != null && _lon != null
-                            ? Colors.green
-                            : Colors.grey,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _fetchingLocation ? null : _captureCurrentLocation,
+                        icon: _fetchingLocation 
+                          ? const SizedBox(
+                              width: 16, 
+                              height: 16, 
+                              child: CircularProgressIndicator(strokeWidth: 2)
+                            )
+                          : const Icon(Icons.my_location),
+                        label: Text(_fetchingLocation ? 'Getting Location...' : 'Update Location'),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _loading ? null : _getCurrentLocation,
-                            icon: _loading
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.my_location,
-                                    color: Colors.white,
-                                  ),
-                            label: Text(
-                              _loading
-                                  ? 'Getting Location...'
-                                  : 'Get Current Location',
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _lat != null && _lon != null
-                                  ? Colors.green
-                                  : Colors.blue,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton.icon(
-                          onPressed: _showManualLocationDialog,
-                          icon: const Icon(Icons.edit_location),
-                          label: const Text('Manual'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
                   ],
                 ),
-              ),
-              TextFormField(
-                controller: _radiusController,
-                decoration: const InputDecoration(
-                  labelText: 'Location Radius (meters)',
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a radius';
-                  }
-                  if (double.tryParse(value) == null) {
-                    return 'Please enter a valid number';
-                  }
-                  return null;
-                },
-              ),
+                if (_locationStatus != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _locationStatus!.startsWith('📍') 
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: _locationStatus!.startsWith('📍') 
+                          ? Colors.green.withValues(alpha: 0.3)
+                          : Colors.red.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Text(
+                      _locationStatus!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _locationStatus!.startsWith('📍') 
+                          ? Colors.green.shade700
+                          : Colors.red.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+                if (_sessionLat != null && _sessionLon != null) ...[
+                  const SizedBox(height: 8),
+                  Card(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Session Location Preview:',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text('Latitude: ${LocationUtils.formatCoordinate(_sessionLat!)}'),
+                          Text('Longitude: ${LocationUtils.formatCoordinate(_sessionLon!)}'),
+                          const Text('Radius: 100m'),
+                          const SizedBox(height: 8),
+                          Text(
+                            '📍 Students must be within 100 meters of this location to mark attendance',
+                            style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ],
           ),
         ),

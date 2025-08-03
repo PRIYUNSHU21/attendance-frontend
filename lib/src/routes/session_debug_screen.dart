@@ -304,9 +304,6 @@ class _SessionDebugScreenState extends State<SessionDebugScreen> {
                 description: 'Auto-generated test session for debugging',
                 startTime: now,
                 endTime: now.add(const Duration(hours: 2)),
-                locationLat: 0.0,
-                locationLon: 0.0,
-                locationRadius: 100.0,
               );
 
               if (success) {
