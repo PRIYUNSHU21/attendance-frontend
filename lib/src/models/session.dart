@@ -34,9 +34,12 @@ class Session {
       endTime: DateTime.parse(json['end_time']),
       // Backend returns latitude/longitude/radius (not location_lat/location_lon/location_radius)
       // Use -999.0 as placeholder for missing location data
-      locationLat: (json['latitude'] ?? json['location_lat'] ?? -999.0).toDouble(),
-      locationLon: (json['longitude'] ?? json['location_lon'] ?? -999.0).toDouble(),
-      locationRadius: (json['radius'] ?? json['location_radius'] ?? 100).toDouble(),
+      locationLat: (json['latitude'] ?? json['location_lat'] ?? -999.0)
+          .toDouble(),
+      locationLon: (json['longitude'] ?? json['location_lon'] ?? -999.0)
+          .toDouble(),
+      locationRadius: (json['radius'] ?? json['location_radius'] ?? 100)
+          .toDouble(),
       isActive: json['is_active'] ?? false,
       orgId: json['org_id'],
       createdBy: json['created_by'],

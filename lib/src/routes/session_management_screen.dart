@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import '../providers/admin_provider.dart';
+import '../providers/attendance_provider.dart';
 import '../models/session.dart';
 import '../utils/location_utils.dart';
 import '../utils/app_theme.dart';
@@ -21,11 +22,28 @@ class _SessionManagementScreenState extends State<SessionManagementScreen> {
     Provider.of<AdminProvider>(context, listen: false).fetchSessions();
   }
 
-  void _showCreateSessionDialog() {
-    showDialog(
+  void _showCreateSessionDialog() async {
+    final result = await showDialog(
       context: context,
       builder: (context) => const CreateSessionDialog(),
     );
+
+    // If session was created successfully, refresh data
+    if (result == true) {
+      _loadData();
+    }
+  }
+
+  void _loadData() {
+    final adminProvider = Provider.of<AdminProvider>(context, listen: false);
+    final attendanceProvider = Provider.of<AttendanceProvider>(
+      context,
+      listen: false,
+    );
+
+    // Refresh both sessions and active sessions
+    adminProvider.fetchSessions();
+    attendanceProvider.fetchActiveSessions();
   }
 
   @override
@@ -44,27 +62,8 @@ class _SessionManagementScreenState extends State<SessionManagementScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateSessionDialog,
-        tooltip: 'Create New Session',
-        child: const Icon(Icons.add),
-      ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _showCreateSessionDialog,
-                icon: const Icon(Icons.add),
-                label: const Text('Create New Session'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
-                ),
-              ),
-            ),
-          ),
           Expanded(
             child: admin.loading
                 ? const Center(child: CircularProgressIndicator())
@@ -216,14 +215,14 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
   DateTime? _startTime;
   DateTime? _endTime;
   bool _loading = false;
-  
+
   // Location capture state
   bool _useCustomLocation = false;
   bool _fetchingLocation = false;
   double? _sessionLat;
   double? _sessionLon;
   String? _locationStatus;
-  
+
   @override
   void initState() {
     super.initState();
@@ -258,7 +257,7 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
           throw Exception('Location permissions are denied');
         }
       }
-      
+
       if (permission == LocationPermission.deniedForever) {
         throw Exception('Location permissions are permanently denied');
       }
@@ -270,14 +269,18 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
       );
 
       // Validate coordinates
-      if (!LocationUtils.areValidCoordinates(position.latitude, position.longitude)) {
+      if (!LocationUtils.areValidCoordinates(
+        position.latitude,
+        position.longitude,
+      )) {
         throw Exception('Invalid coordinates received');
       }
 
       setState(() {
         _sessionLat = position.latitude;
         _sessionLon = position.longitude;
-        _locationStatus = '📍 Location captured: '
+        _locationStatus =
+            '📍 Location captured: '
             '${LocationUtils.formatCoordinate(position.latitude)}, '
             '${LocationUtils.formatCoordinate(position.longitude)}';
         _fetchingLocation = false;
@@ -331,15 +334,17 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
       );
       return;
     }
-    
+
     // Validate custom location if enabled
     if (_useCustomLocation && (_sessionLat == null || _sessionLon == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please capture location or disable custom location')),
+        const SnackBar(
+          content: Text('Please capture location or disable custom location'),
+        ),
       );
       return;
     }
-    
+
     setState(() => _loading = true);
     final admin = Provider.of<AdminProvider>(context, listen: false);
     bool success;
@@ -370,7 +375,7 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
     }
     setState(() => _loading = false);
     if (success) {
-      Navigator.pop(context);
+      Navigator.pop(context, true); // Return true to indicate success
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -451,22 +456,26 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // Custom Location Section
               CheckboxListTile(
                 title: const Text('Set Custom Location for This Session'),
-                subtitle: const Text('Capture current location instead of using organization default'),
+                subtitle: const Text(
+                  'Capture current location instead of using organization default',
+                ),
                 value: _useCustomLocation,
-                onChanged: widget.session != null ? null : (value) {
-                  setState(() => _useCustomLocation = value ?? false);
-                  if (_useCustomLocation) {
-                    _captureCurrentLocation();
-                  } else {
-                    _sessionLat = null;
-                    _sessionLon = null;
-                    _locationStatus = null;
-                  }
-                },
+                onChanged: widget.session != null
+                    ? null
+                    : (value) {
+                        setState(() => _useCustomLocation = value ?? false);
+                        if (_useCustomLocation) {
+                          _captureCurrentLocation();
+                        } else {
+                          _sessionLat = null;
+                          _sessionLon = null;
+                          _locationStatus = null;
+                        }
+                      },
                 contentPadding: EdgeInsets.zero,
               ),
 
@@ -476,15 +485,23 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: _fetchingLocation ? null : _captureCurrentLocation,
-                        icon: _fetchingLocation 
-                          ? const SizedBox(
-                              width: 16, 
-                              height: 16, 
-                              child: CircularProgressIndicator(strokeWidth: 2)
-                            )
-                          : const Icon(Icons.my_location),
-                        label: Text(_fetchingLocation ? 'Getting Location...' : 'Update Location'),
+                        onPressed: _fetchingLocation
+                            ? null
+                            : _captureCurrentLocation,
+                        icon: _fetchingLocation
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.my_location),
+                        label: Text(
+                          _fetchingLocation
+                              ? 'Getting Location...'
+                              : 'Update Location',
+                        ),
                       ),
                     ),
                   ],
@@ -494,23 +511,23 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: _locationStatus!.startsWith('📍') 
-                        ? Colors.green.withValues(alpha: 0.1)
-                        : Colors.red.withValues(alpha: 0.1),
+                      color: _locationStatus!.startsWith('📍')
+                          ? Colors.green.withValues(alpha: 0.1)
+                          : Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                        color: _locationStatus!.startsWith('📍') 
-                          ? Colors.green.withValues(alpha: 0.3)
-                          : Colors.red.withValues(alpha: 0.3),
+                        color: _locationStatus!.startsWith('📍')
+                            ? Colors.green.withValues(alpha: 0.3)
+                            : Colors.red.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Text(
                       _locationStatus!,
                       style: TextStyle(
                         fontSize: 12,
-                        color: _locationStatus!.startsWith('📍') 
-                          ? Colors.green.shade700
-                          : Colors.red.shade700,
+                        color: _locationStatus!.startsWith('📍')
+                            ? Colors.green.shade700
+                            : Colors.red.shade700,
                       ),
                     ),
                   ),
@@ -529,8 +546,12 @@ class _CreateSessionDialogState extends State<CreateSessionDialog> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 4),
-                          Text('Latitude: ${LocationUtils.formatCoordinate(_sessionLat!)}'),
-                          Text('Longitude: ${LocationUtils.formatCoordinate(_sessionLon!)}'),
+                          Text(
+                            'Latitude: ${LocationUtils.formatCoordinate(_sessionLat!)}',
+                          ),
+                          Text(
+                            'Longitude: ${LocationUtils.formatCoordinate(_sessionLon!)}',
+                          ),
                           const Text('Radius: 100m'),
                           const SizedBox(height: 8),
                           Text(

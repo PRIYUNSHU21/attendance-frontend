@@ -22,10 +22,24 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
     _loadData();
   }
 
-  void _loadData() {
+  void _loadData() async {
     final adminProvider = Provider.of<AdminProvider>(context, listen: false);
-    adminProvider.fetchUsers();
-    adminProvider.fetchOrganizations();
+    try {
+      // ONLY fetch real users - NO MOCK DATA!
+      print('🚀 Loading REAL student data from backend...');
+      await adminProvider.fetchStudents();
+      await adminProvider.fetchOrganizations();
+
+      if (adminProvider.error != null) {
+        print('❌ Error loading real users: ${adminProvider.error}');
+      } else {
+        print(
+          '✅ Successfully loaded real users: ${adminProvider.users.length}',
+        );
+      }
+    } catch (e) {
+      print('💥 Critical error loading data: $e');
+    }
   }
 
   @override
@@ -34,7 +48,7 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
 
     // Filter students based on search and organization
     List<User> filteredStudents = admin.users
-        .where((user) => user.role == 'student')
+        //.where((user) => user.role == 'student')
         .where(
           (user) =>
               _selectedOrganization == 'all' ||

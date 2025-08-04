@@ -353,7 +353,7 @@ class _CheckInDialogState extends State<CheckInDialog> {
       print('🔍 Attempting to get current position...');
       print('   Desired accuracy: HIGH');
       print('   Timeout: 15 seconds');
-      
+
       Position position;
       try {
         // First try: High accuracy with longer timeout
@@ -362,17 +362,16 @@ class _CheckInDialogState extends State<CheckInDialog> {
           timeLimit: const Duration(seconds: 30), // Increased timeout
           forceAndroidLocationManager: false,
         );
-        
+
         // Check if accuracy is acceptable (within 100m)
         if (position.accuracy > 100) {
           print('⚠️ Low accuracy (${position.accuracy}m), trying again...');
           throw Exception('Accuracy too low: ${position.accuracy}m');
         }
-        
       } catch (timeoutError) {
         print('⏱️ High accuracy failed: $timeoutError');
         print('🔄 Trying best accuracy...');
-        
+
         try {
           position = await Geolocator.getCurrentPosition(
             desiredAccuracy: LocationAccuracy.best,
@@ -381,14 +380,14 @@ class _CheckInDialogState extends State<CheckInDialog> {
         } catch (bestError) {
           print('⏱️ Best accuracy failed: $bestError');
           print('🔄 Trying medium accuracy as last resort...');
-          
+
           position = await Geolocator.getCurrentPosition(
             desiredAccuracy: LocationAccuracy.medium,
             timeLimit: const Duration(seconds: 10),
           );
         }
       }
-      
+
       print('📍 Raw position received:');
       print('   Latitude: ${position.latitude}');
       print('   Longitude: ${position.longitude}');
@@ -399,18 +398,20 @@ class _CheckInDialogState extends State<CheckInDialog> {
       // Calculate distance from session location
       double sessionLat = widget.session.locationLat;
       double sessionLon = widget.session.locationLon;
-      
+
       // Debug: Print session coordinates
       print('🔍 Session coordinates: ($sessionLat, $sessionLon)');
-      print('📍 User coordinates: (${position.latitude}, ${position.longitude})');
-      
+      print(
+        '📍 User coordinates: (${position.latitude}, ${position.longitude})',
+      );
+
       double distance = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
         sessionLat,
         sessionLon,
       );
-      
+
       print('📏 Calculated distance: ${distance}m');
 
       double radius = widget.session.locationRadius;
@@ -420,26 +421,30 @@ class _CheckInDialogState extends State<CheckInDialog> {
         _lat = position.latitude;
         _lon = position.longitude;
         _altitude = position.altitude;
-        
+
         // Check if we got approximate/IP-based location (indicating a location accuracy issue)
-        bool isApproximateLocation = position.accuracy > 100 || 
-                                   ((position.latitude > 22.5 && position.latitude < 22.7) && 
-                                    (position.longitude > 88.3 && position.longitude < 88.4));
-        
+        bool isApproximateLocation =
+            position.accuracy > 100 ||
+            ((position.latitude > 22.5 && position.latitude < 22.7) &&
+                (position.longitude > 88.3 && position.longitude < 88.4));
+
         if (isApproximateLocation) {
           print('⚠️ WARNING: Location appears to be approximate/IP-based!');
           print('   Accuracy: ${position.accuracy}m (should be <100m for GPS)');
           print('   Coordinates: ${position.latitude}, ${position.longitude}');
-          print('   This indicates browser is using WiFi/IP location instead of GPS');
-          
-          _locationStatus = '⚠️ Using approximate location (${position.accuracy.round()}m accuracy). '
-                           'For better accuracy, enable precise location in browser settings.';
+          print(
+            '   This indicates browser is using WiFi/IP location instead of GPS',
+          );
+
+          _locationStatus =
+              '⚠️ Using approximate location (${position.accuracy.round()}m accuracy). '
+              'For better accuracy, enable precise location in browser settings.';
         } else {
           _locationStatus = withinRange
               ? '✅ You are within range (${distance.round()}m from session)'
               : '❌ You are ${distance.round()}m away (max ${radius.round()}m)';
         }
-        
+
         _loading = false;
       });
     } catch (e) {
@@ -461,10 +466,11 @@ class _CheckInDialogState extends State<CheckInDialog> {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         setState(() {
-          _locationStatus = 'Location services disabled. Please enable location services in your browser.';
+          _locationStatus =
+              'Location services disabled. Please enable location services in your browser.';
           _loading = false;
         });
-        
+
         // Show user dialog to enable location
         if (mounted) {
           showDialog(
@@ -475,7 +481,7 @@ class _CheckInDialogState extends State<CheckInDialog> {
                 'Location services are disabled. Please enable location access in your browser to mark attendance.\n\n'
                 '1. Click the location icon in your browser\'s address bar\n'
                 '2. Select "Always allow" for this site\n'
-                '3. Refresh the page if needed'
+                '3. Refresh the page if needed',
               ),
               actions: [
                 TextButton(
@@ -492,17 +498,19 @@ class _CheckInDialogState extends State<CheckInDialog> {
       // Always request permission explicitly for attendance marking
       print('🔐 Checking location permissions...');
       LocationPermission permission = await Geolocator.checkPermission();
-      
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
         print('🔐 Requesting location permission...');
         permission = await Geolocator.requestPermission();
-        
+
         if (permission == LocationPermission.denied) {
           setState(() {
-            _locationStatus = 'Location permission denied. Please allow location access to mark attendance.';
+            _locationStatus =
+                'Location permission denied. Please allow location access to mark attendance.';
             _loading = false;
           });
-          
+
           // Show permission dialog
           if (mounted) {
             showDialog(
@@ -511,7 +519,7 @@ class _CheckInDialogState extends State<CheckInDialog> {
                 title: const Text('Location Permission Required'),
                 content: const Text(
                   'Location access is required to verify your attendance.\n\n'
-                  'Please click "Allow" when your browser asks for location permission.'
+                  'Please click "Allow" when your browser asks for location permission.',
                 ),
                 actions: [
                   TextButton(
@@ -534,10 +542,11 @@ class _CheckInDialogState extends State<CheckInDialog> {
 
         if (permission == LocationPermission.deniedForever) {
           setState(() {
-            _locationStatus = 'Location permission permanently denied. Please enable in browser settings.';
+            _locationStatus =
+                'Location permission permanently denied. Please enable in browser settings.';
             _loading = false;
           });
-          
+
           if (mounted) {
             showDialog(
               context: context,
@@ -547,7 +556,7 @@ class _CheckInDialogState extends State<CheckInDialog> {
                   'Location permission has been permanently denied. To mark attendance:\n\n'
                   '1. Click the location icon in your browser\'s address bar\n'
                   '2. Change the setting to "Allow"\n'
-                  '3. Refresh the page'
+                  '3. Refresh the page',
                 ),
                 actions: [
                   TextButton(
@@ -581,15 +590,14 @@ class _CheckInDialogState extends State<CheckInDialog> {
       print('   Latitude: ${position.latitude}');
       print('   Longitude: ${position.longitude}');
       print('   Accuracy: ${position.accuracy}m');
-
     } catch (e) {
       setState(() {
         _locationStatus = 'Error getting location: $e';
         _loading = false;
       });
-      
+
       print('❌ Location error: $e');
-      
+
       if (mounted) {
         showDialog(
           context: context,
@@ -597,7 +605,7 @@ class _CheckInDialogState extends State<CheckInDialog> {
             title: const Text('Location Error'),
             content: Text(
               'Unable to get your location:\n$e\n\n'
-              'Please ensure location services are enabled and try again.'
+              'Please ensure location services are enabled and try again.',
             ),
             actions: [
               TextButton(
@@ -621,11 +629,13 @@ class _CheckInDialogState extends State<CheckInDialog> {
   Future<void> _markAttendance() async {
     // Always request fresh location for attendance marking
     await _requestLocationForAttendance();
-    
+
     if (_lat == null || _lon == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Location access is required to mark attendance. Please allow location permissions.'),
+          content: Text(
+            'Location access is required to mark attendance. Please allow location permissions.',
+          ),
           backgroundColor: Colors.orange,
           duration: Duration(seconds: 4),
         ),
@@ -696,7 +706,7 @@ class _CheckInDialogState extends State<CheckInDialog> {
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 8),
-          
+
           // Location permission notice
           Container(
             padding: const EdgeInsets.all(12),
@@ -712,10 +722,7 @@ class _CheckInDialogState extends State<CheckInDialog> {
                 Expanded(
                   child: Text(
                     'Location access required to verify attendance',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.blue.shade700,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
                   ),
                 ),
               ],
@@ -797,9 +804,11 @@ class _CheckInDialogState extends State<CheckInDialog> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                     const SizedBox(width: 8),
-                    Text(_locationStatus?.contains('permission') == true 
-                        ? 'Requesting Permission...' 
-                        : 'Getting Location...'),
+                    Text(
+                      _locationStatus?.contains('permission') == true
+                          ? 'Requesting Permission...'
+                          : 'Getting Location...',
+                    ),
                   ],
                 )
               : const Text('Mark Attendance'),

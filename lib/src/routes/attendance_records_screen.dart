@@ -138,23 +138,14 @@ class _AttendanceRecordsScreenState extends State<AttendanceRecordsScreen>
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           tabs: const [
-            Tab(
-              icon: Icon(Icons.event),
-              text: 'By Session',
-            ),
-            Tab(
-              icon: Icon(Icons.calendar_today),
-              text: 'All Records',
-            ),
+            Tab(icon: Icon(Icons.event), text: 'By Session'),
+            Tab(icon: Icon(Icons.calendar_today), text: 'All Records'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildSessionTab(adminProvider),
-          _buildAllRecordsTab(),
-        ],
+        children: [_buildSessionTab(adminProvider), _buildAllRecordsTab()],
       ),
     );
   }
@@ -206,21 +197,16 @@ class _AttendanceRecordsScreenState extends State<AttendanceRecordsScreen>
   }
 
   Widget _buildSessionSelection(AdminProvider adminProvider) {
-    final allSessions = [
-      ...adminProvider.sessions,
-    ]..sort((a, b) => b.startTime.compareTo(a.startTime));
+    final allSessions = [...adminProvider.sessions]
+      ..sort((a, b) => b.startTime.compareTo(a.startTime));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Select Session',
-          style: AppTheme.headingSmall,
-        ).animate().fadeIn(duration: 400.ms).slideX(
-              begin: 0.2,
-              end: 0,
-              duration: 400.ms,
-            ),
+        Text('Select Session', style: AppTheme.headingSmall)
+            .animate()
+            .fadeIn(duration: 400.ms)
+            .slideX(begin: 0.2, end: 0, duration: 400.ms),
         const SizedBox(height: 16),
 
         if (adminProvider.loading)
@@ -251,7 +237,8 @@ class _AttendanceRecordsScreenState extends State<AttendanceRecordsScreen>
 
   Widget _buildSessionCard(Session session, int index) {
     final now = DateTime.now();
-    final isActive = now.isAfter(session.startTime) && now.isBefore(session.endTime);
+    final isActive =
+        now.isAfter(session.startTime) && now.isBefore(session.endTime);
 
     return components.SessionCard(
       title: session.sessionName,
@@ -270,14 +257,10 @@ class _AttendanceRecordsScreenState extends State<AttendanceRecordsScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Filter by Date',
-          style: AppTheme.headingSmall,
-        ).animate().fadeIn(duration: 400.ms).slideX(
-              begin: 0.2,
-              end: 0,
-              duration: 400.ms,
-            ),
+        Text('Filter by Date', style: AppTheme.headingSmall)
+            .animate()
+            .fadeIn(duration: 400.ms)
+            .slideX(begin: 0.2, end: 0, duration: 400.ms),
         const SizedBox(height: 16),
 
         Row(
@@ -376,13 +359,12 @@ class _AttendanceRecordsScreenState extends State<AttendanceRecordsScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Attendance Records (${attendanceRecords.length})',
-          style: AppTheme.headingSmall,
-        ).animate().fadeIn(duration: 400.ms).slideX(
-              begin: 0.2,
-              end: 0,
-              duration: 400.ms,
-            ),
+              'Attendance Records (${attendanceRecords.length})',
+              style: AppTheme.headingSmall,
+            )
+            .animate()
+            .fadeIn(duration: 400.ms)
+            .slideX(begin: 0.2, end: 0, duration: 400.ms),
         const SizedBox(height: 16),
 
         Column(
@@ -399,7 +381,8 @@ class _AttendanceRecordsScreenState extends State<AttendanceRecordsScreen>
   }
 
   Widget _buildAttendanceCard(Map<String, dynamic> record, int index) {
-    final studentName = record['student_name'] ?? record['user_name'] ?? 'Unknown Student';
+    final studentName =
+        record['student_name'] ?? record['user_name'] ?? 'Unknown Student';
     final studentEmail = record['student_email'] ?? record['user_email'] ?? '';
     final sessionName = record['session_name'] ?? 'Unknown Session';
     final status = record['status'] ?? 'unknown';
@@ -439,160 +422,150 @@ class _AttendanceRecordsScreenState extends State<AttendanceRecordsScreen>
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: AppTheme.borderRadiusMedium,
-        boxShadow: AppTheme.cardShadow,
-        border: Border(
-          left: BorderSide(
-            width: 4,
-            color: statusColor,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: AppTheme.borderRadiusMedium,
+            boxShadow: AppTheme.cardShadow,
+            border: Border(left: BorderSide(width: 4, color: statusColor)),
           ),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Student Info
-          Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: statusColor.withOpacity(0.1),
-                child: Text(
-                  studentName.isNotEmpty
-                      ? studentName.substring(0, 1).toUpperCase()
-                      : 'S',
-                  style: TextStyle(
-                    color: statusColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      studentName,
-                      style: AppTheme.bodyLarge.copyWith(
+              // Student Info
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: statusColor.withOpacity(0.1),
+                    child: Text(
+                      studentName.isNotEmpty
+                          ? studentName.substring(0, 1).toUpperCase()
+                          : 'S',
+                      style: TextStyle(
+                        color: statusColor,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (studentEmail.isNotEmpty)
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          studentName,
+                          style: AppTheme.bodyLarge.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (studentEmail.isNotEmpty)
+                          Text(
+                            studentEmail,
+                            style: AppTheme.bodySmall.copyWith(
+                              color: AppTheme.textLight,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: AppTheme.borderRadiusSmall,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(statusIcon, size: 16, color: statusColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          status.toUpperCase(),
+                          style: TextStyle(
+                            color: statusColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Session and Time Info
+              Row(
+                children: [
+                  Icon(Icons.event, size: 16, color: AppTheme.textLight),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      sessionName,
+                      style: AppTheme.bodyMedium.copyWith(
+                        color: AppTheme.textMedium,
+                      ),
+                    ),
+                  ),
+                  if (markedTime != null) ...[
+                    Icon(Icons.schedule, size: 16, color: AppTheme.textLight),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${_formatDate(markedTime)} ${_formatTime(markedTime)}',
+                      style: AppTheme.bodySmall.copyWith(
+                        color: AppTheme.textLight,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+
+              // Location Info (if available)
+              if (distance != null || accuracy != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      size: 16,
+                      color: AppTheme.textLight,
+                    ),
+                    const SizedBox(width: 6),
+                    if (distance != null)
                       Text(
-                        studentEmail,
+                        'Distance: ${distance.toStringAsFixed(1)}m',
+                        style: AppTheme.bodySmall.copyWith(
+                          color: AppTheme.textLight,
+                        ),
+                      ),
+                    if (distance != null && accuracy != null)
+                      Text(
+                        ' • ',
+                        style: AppTheme.bodySmall.copyWith(
+                          color: AppTheme.textLight,
+                        ),
+                      ),
+                    if (accuracy != null)
+                      Text(
+                        'Accuracy: ${accuracy.toStringAsFixed(1)}m',
                         style: AppTheme.bodySmall.copyWith(
                           color: AppTheme.textLight,
                         ),
                       ),
                   ],
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: AppTheme.borderRadiusSmall,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      statusIcon,
-                      size: 16,
-                      color: statusColor,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      status.toUpperCase(),
-                      style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Session and Time Info
-          Row(
-            children: [
-              Icon(Icons.event, size: 16, color: AppTheme.textLight),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  sessionName,
-                  style: AppTheme.bodyMedium.copyWith(
-                    color: AppTheme.textMedium,
-                  ),
-                ),
-              ),
-              if (markedTime != null) ...[
-                Icon(Icons.schedule, size: 16, color: AppTheme.textLight),
-                const SizedBox(width: 6),
-                Text(
-                  '${_formatDate(markedTime)} ${_formatTime(markedTime)}',
-                  style: AppTheme.bodySmall.copyWith(
-                    color: AppTheme.textLight,
-                  ),
-                ),
               ],
             ],
           ),
-
-          // Location Info (if available)
-          if (distance != null || accuracy != null) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.location_on, size: 16, color: AppTheme.textLight),
-                const SizedBox(width: 6),
-                if (distance != null)
-                  Text(
-                    'Distance: ${distance.toStringAsFixed(1)}m',
-                    style: AppTheme.bodySmall.copyWith(
-                      color: AppTheme.textLight,
-                    ),
-                  ),
-                if (distance != null && accuracy != null)
-                  Text(
-                    ' • ',
-                    style: AppTheme.bodySmall.copyWith(
-                      color: AppTheme.textLight,
-                    ),
-                  ),
-                if (accuracy != null)
-                  Text(
-                    'Accuracy: ${accuracy.toStringAsFixed(1)}m',
-                    style: AppTheme.bodySmall.copyWith(
-                      color: AppTheme.textLight,
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    ).animate().fadeIn(
-      duration: 400.ms,
-      delay: (index * 50).ms,
-    ).slideY(
-      begin: 0.2,
-      end: 0,
-      duration: 400.ms,
-      delay: (index * 50).ms,
-    );
+        )
+        .animate()
+        .fadeIn(duration: 400.ms, delay: (index * 50).ms)
+        .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: (index * 50).ms);
   }
 
   Widget _buildEmptyState(String title, String message, IconData icon) {
@@ -665,10 +638,7 @@ class _AttendanceRecordsScreenState extends State<AttendanceRecordsScreen>
             label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryColor,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
           ).animate().fadeIn(duration: 400.ms, delay: 700.ms),
         ],

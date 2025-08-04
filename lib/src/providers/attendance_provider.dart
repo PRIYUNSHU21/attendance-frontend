@@ -26,7 +26,7 @@ class AttendanceProvider extends ChangeNotifier {
   Future<void> fetchActiveSessions() async {
     _loading = true;
     _error = null;
-    notifyListeners();
+    // Don't call notifyListeners here to avoid setState during build
 
     try {
       print('🔍 Fetching active sessions using NEW public endpoint...');
@@ -71,12 +71,12 @@ class AttendanceProvider extends ChangeNotifier {
         // Filter sessions by user's organization if available
         if (userOrgId != null) {
           final now = DateTime.now();
-          
+
           // Split sessions into active and past
-          final userOrgSessions = allPublicSessions.where((session) => 
-            session.orgId == userOrgId
-          ).toList();
-          
+          final userOrgSessions = allPublicSessions
+              .where((session) => session.orgId == userOrgId)
+              .toList();
+
           _activeSessions = userOrgSessions.where((session) {
             final isActive = session.isActive;
             final isNotExpired = session.endTime.isAfter(now);
@@ -91,7 +91,8 @@ class AttendanceProvider extends ChangeNotifier {
           }).toList();
 
           _pastSessions = userOrgSessions.where((session) {
-            final isExpired = session.endTime.isBefore(now) || !session.isActive;
+            final isExpired =
+                session.endTime.isBefore(now) || !session.isActive;
             return isExpired;
           }).toList();
 
@@ -102,10 +103,14 @@ class AttendanceProvider extends ChangeNotifier {
           // If no user org, show all active, non-expired sessions
           final now = DateTime.now();
           _activeSessions = allPublicSessions
-              .where((session) => session.isActive && session.endTime.isAfter(now))
+              .where(
+                (session) => session.isActive && session.endTime.isAfter(now),
+              )
               .toList();
           _pastSessions = allPublicSessions
-              .where((session) => session.endTime.isBefore(now) || !session.isActive)
+              .where(
+                (session) => session.endTime.isBefore(now) || !session.isActive,
+              )
               .toList();
           print(
             '✅ Showing ${_activeSessions.length} active sessions and ${_pastSessions.length} past sessions (no org filter)',
@@ -146,12 +151,15 @@ class AttendanceProvider extends ChangeNotifier {
             '📊 Found ${sessionsData.length} sessions from authenticated endpoint',
           );
 
-          final allSessions = sessionsData.map((e) => Session.fromJson(e)).toList();
-          
+          final allSessions = sessionsData
+              .map((e) => Session.fromJson(e))
+              .toList();
+
           // Apply time-based filtering for truly active sessions
           final now = DateTime.now();
           _activeSessions = allSessions.where((session) {
-            final isTimeActive = now.isAfter(session.startTime) && now.isBefore(session.endTime);
+            final isTimeActive =
+                now.isAfter(session.startTime) && now.isBefore(session.endTime);
             return isTimeActive;
           }).toList();
 
@@ -192,7 +200,9 @@ class AttendanceProvider extends ChangeNotifier {
             // Filter sessions by user's organization and time-based active status
             final now = DateTime.now();
             _activeSessions = allSessions.where((session) {
-              final isTimeActive = now.isAfter(session.startTime) && now.isBefore(session.endTime);
+              final isTimeActive =
+                  now.isAfter(session.startTime) &&
+                  now.isBefore(session.endTime);
               final isActiveStatus = session.isActive;
 
               // If user org is null, we'll show ALL active sessions as a fallback
@@ -200,7 +210,9 @@ class AttendanceProvider extends ChangeNotifier {
                   userOrgId == null || session.orgId == userOrgId;
 
               print('   🔍 Session: ${session.sessionName}');
-              print('      - Time Active: $isTimeActive (${session.startTime} - ${session.endTime})');
+              print(
+                '      - Time Active: $isTimeActive (${session.startTime} - ${session.endTime})',
+              );
               print('      - Status Active: $isActiveStatus');
               print('      - Session Org: ${session.orgId}');
               print('      - User Org: $userOrgId');
@@ -214,8 +226,9 @@ class AttendanceProvider extends ChangeNotifier {
             _pastSessions = allSessions.where((session) {
               final isExpired = now.isAfter(session.endTime);
               final isRecent = session.endTime.isAfter(sevenDaysAgo);
-              final matchesOrg = userOrgId == null || session.orgId == userOrgId;
-              
+              final matchesOrg =
+                  userOrgId == null || session.orgId == userOrgId;
+
               return isExpired && isRecent && matchesOrg;
             }).toList();
 
@@ -405,7 +418,7 @@ class AttendanceProvider extends ChangeNotifier {
 
         // Refresh attendance history after UI update
         Future.microtask(() => fetchHistory());
-        
+
         return attendanceData;
       } else {
         _error = response['message'] ?? 'Failed to mark attendance';
@@ -463,7 +476,7 @@ class AttendanceProvider extends ChangeNotifier {
   }) async {
     _loading = true;
     _error = null;
-    
+
     // Use microtask to avoid setState during build
     Future.microtask(() => notifyListeners());
 
@@ -495,7 +508,7 @@ class AttendanceProvider extends ChangeNotifier {
       _error = 'Error fetching attendance history: $e';
       print('💥 Exception while fetching history: $e');
     }
-    
+
     // Use microtask to avoid setState during build
     Future.microtask(() => notifyListeners());
   }

@@ -32,15 +32,16 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
     });
   }
 
-  void _loadData() {
+  void _loadData() async {
     final adminProvider = Provider.of<AdminProvider>(context, listen: false);
     final attendanceProvider = Provider.of<AttendanceProvider>(
       context,
       listen: false,
     );
 
-    adminProvider.fetchSessions();
-    attendanceProvider.fetchActiveSessions();
+    // Load data progressively to avoid blocking the UI
+    Future.microtask(() => attendanceProvider.fetchActiveSessions());
+    Future.microtask(() => adminProvider.fetchSessions());
   }
 
   @override
@@ -65,42 +66,14 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          // Debug button for testing session visibility
-          IconButton(
-                icon: const Icon(Icons.bug_report),
-                tooltip: 'Debug Sessions',
-                onPressed: () => Navigator.pushNamed(context, '/session-debug'),
-              )
-              .animate()
-              .fadeIn(duration: 400.ms, delay: 100.ms)
-              .slideY(begin: -0.2, end: 0, duration: 400.ms, delay: 100.ms),
-
-          // Location Setup shortcut
-          IconButton(
-                icon: const Icon(Icons.location_on),
-                tooltip: 'Setup Location',
-                onPressed: () => Navigator.pushNamed(
-                  context,
-                  OrganizationLocationSetupScreen.routeName,
-                ),
-              )
-              .animate()
-              .fadeIn(duration: 400.ms, delay: 150.ms)
-              .slideY(begin: -0.2, end: 0, duration: 400.ms, delay: 150.ms),
-
           // Admin panel shortcut if user is admin
           if (auth.user?.role == 'admin')
             IconButton(
-                  icon: const Icon(Icons.admin_panel_settings),
-                  tooltip: 'Admin Panel',
-                  onPressed: () => Navigator.pushNamed(
-                    context,
-                    AdminDashboardScreen.routeName,
-                  ),
-                )
-                .animate()
-                .fadeIn(duration: 400.ms, delay: 200.ms)
-                .slideY(begin: -0.2, end: 0, duration: 400.ms, delay: 200.ms),
+              icon: const Icon(Icons.admin_panel_settings),
+              tooltip: 'Admin Panel',
+              onPressed: () =>
+                  Navigator.pushNamed(context, AdminDashboardScreen.routeName),
+            ),
 
           // Logout button
           IconButton(
@@ -627,13 +600,11 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
             const SizedBox(width: 16),
             Expanded(
               child: components.ActionCard(
-                title: 'Reports',
-                subtitle: 'View attendance reports',
+                title: 'Analytics & Reports',
+                subtitle: 'View reports and session history',
                 icon: Icons.analytics,
                 color: AppTheme.accentColor,
-                onTap: () {
-                  Navigator.pushNamed(context, '/analytics');
-                },
+                onTap: () => Navigator.pushNamed(context, '/analytics'),
                 index: 1,
               ),
             ),
@@ -679,18 +650,19 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                 subtitle: 'View student attendance details',
                 icon: Icons.fact_check,
                 color: AppTheme.successColor,
-                onTap: () => Navigator.pushNamed(context, '/attendance-records'),
+                onTap: () =>
+                    Navigator.pushNamed(context, '/attendance-records'),
                 index: 4,
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: components.ActionCard(
-                title: 'Session History',
-                subtitle: 'View all past sessions',
-                icon: Icons.history,
-                color: AppTheme.warningColor,
-                onTap: () => Navigator.pushNamed(context, '/analytics'),
+                title: 'User Management',
+                subtitle: 'Manage organization users',
+                icon: Icons.manage_accounts,
+                color: AppTheme.primaryColor,
+                onTap: () => Navigator.pushNamed(context, '/user-management'),
                 index: 5,
               ),
             ),

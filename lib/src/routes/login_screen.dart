@@ -380,42 +380,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       delay: 800.ms,
                     ),
 
-                    const SizedBox(height: 16),
-
-                    // Browse Sessions Button (No Login Required)
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/browse-sessions');
-                      },
-                      icon: Icon(
-                        Icons.visibility_outlined,
-                        color: AppTheme.primaryColor,
-                      ),
-                      label: Text(
-                        'Browse Available Sessions',
-                        style: TextStyle(
-                          color: AppTheme.primaryColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 16,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: AppTheme.borderRadiusMedium,
-                        ),
-                        side: BorderSide(
-                          color: AppTheme.primaryColor,
-                          width: 1.5,
-                        ),
-                      ),
-                    ).animate().fadeIn(
-                      duration: AppTheme.animDurationMedium,
-                      delay: 850.ms,
-                    ),
-
                     const SizedBox(height: 24),
                     const Divider(),
                     const SizedBox(height: 24),

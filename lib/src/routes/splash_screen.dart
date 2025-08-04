@@ -33,9 +33,9 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _setupAnimations() {
-    // Logo animations
+    // Logo animations - reduced duration for faster loading
     _logoController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
 
@@ -50,9 +50,9 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Text animations
+    // Text animations - reduced duration for faster loading
     _textController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
@@ -81,18 +81,18 @@ class _SplashScreenState extends State<SplashScreen>
     // Start logo animation
     _logoController.forward();
 
-    // Wait and start text animation
-    await Future.delayed(const Duration(milliseconds: 800));
+    // Wait and start text animation - reduced delay
+    await Future.delayed(const Duration(milliseconds: 400));
     _textController.forward();
 
-    // Wait and start progress animation
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Wait and start progress animation - reduced delay
+    await Future.delayed(const Duration(milliseconds: 300));
     _progressController.forward();
   }
 
   Future<void> _checkAuth() async {
-    // Add minimum splash duration for better UX
-    await Future.delayed(const Duration(seconds: 3));
+    // Add minimum splash duration for better UX - balanced timing
+    await Future.delayed(const Duration(seconds: 2));
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.loadUserFromStorage();

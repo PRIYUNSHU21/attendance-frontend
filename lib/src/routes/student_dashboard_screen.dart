@@ -253,7 +253,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Available Sessions',
+                'All Sessions',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.indigo.shade700,
@@ -261,7 +261,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
               ),
               const SizedBox(height: 4),
               Text(
-                'Sessions you can attend today',
+                'Active and recent sessions',
                 style: TextStyle(color: Colors.indigo.shade600, fontSize: 14),
               ),
             ],
@@ -270,7 +270,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
         Expanded(
           child: attendance.loading
               ? const Center(child: CircularProgressIndicator())
-              : attendance.activeSessions.isEmpty
+              : (attendance.activeSessions.isEmpty &&
+                    attendance.pastSessions.isEmpty)
               ? const Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -278,7 +279,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                       Icon(Icons.event_busy, size: 64, color: Colors.grey),
                       SizedBox(height: 16),
                       Text(
-                        'No Active Sessions',
+                        'No Sessions Found',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -296,10 +297,21 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                   onRefresh: () => attendance.fetchActiveSessions(),
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: attendance.activeSessions.length,
+                    itemCount:
+                        attendance.activeSessions.length +
+                        attendance.pastSessions.length,
                     itemBuilder: (context, index) {
-                      final session = attendance.activeSessions[index];
-                      return _buildDetailedSessionCard(session);
+                      if (index < attendance.activeSessions.length) {
+                        // Show active sessions first
+                        final session = attendance.activeSessions[index];
+                        return _buildDetailedSessionCard(session);
+                      } else {
+                        // Show past sessions after active ones
+                        final pastIndex =
+                            index - attendance.activeSessions.length;
+                        final session = attendance.pastSessions[pastIndex];
+                        return _buildDetailedSessionCard(session, isPast: true);
+                      }
                     },
                   ),
                 ),
@@ -589,11 +601,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
     );
   }
 
-  Widget _buildDetailedSessionCard(session) {
+  Widget _buildDetailedSessionCard(session, {bool isPast = false}) {
     final now = DateTime.now();
     final isLate = now.isAfter(
       session.startTime.add(const Duration(minutes: 15)),
     );
+    final isExpired = isPast || now.isAfter(session.endTime);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -629,7 +642,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                     ],
                   ),
                 ),
-                if (isLate)
+                if (isLate && !isExpired)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -643,6 +656,25 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
                       'LATE',
                       style: TextStyle(
                         color: Colors.orange.shade700,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                if (isExpired)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'ENDED',
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -676,14 +708,20 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(
-                  context,
-                  StudentAttendanceScreen.routeName,
+                onPressed: isExpired
+                    ? null
+                    : () => Navigator.pushNamed(
+                        context,
+                        StudentAttendanceScreen.routeName,
+                      ),
+                icon: Icon(
+                  isExpired ? Icons.history : Icons.check_circle_outline,
                 ),
-                icon: const Icon(Icons.check_circle_outline),
-                label: const Text('Mark Attendance'),
+                label: Text(isExpired ? 'Session Ended' : 'Mark Attendance'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isLate ? Colors.orange : Colors.green,
+                  backgroundColor: isExpired
+                      ? Colors.grey
+                      : (isLate ? Colors.orange : Colors.green),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),

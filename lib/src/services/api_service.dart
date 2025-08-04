@@ -11,14 +11,16 @@ class ApiService {
   }) async {
     final token = await _getToken();
 
-    final response = await http.get(
-      Uri.parse(baseUrl + path),
-      headers: {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-        ...?headers,
-      },
-    );
+    final response = await http
+        .get(
+          Uri.parse(baseUrl + path),
+          headers: {
+            'Content-Type': 'application/json',
+            if (token != null) 'Authorization': 'Bearer $token',
+            ...?headers,
+          },
+        )
+        .timeout(const Duration(seconds: 15)); // Add 15 second timeout
 
     return _processResponse(response);
   }
@@ -32,15 +34,17 @@ class ApiService {
         ? null // Don't add token if Authorization header is explicitly provided
         : await _getToken();
 
-    final response = await http.post(
-      Uri.parse(baseUrl + path),
-      headers: {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-        ...?headers,
-      },
-      body: jsonEncode(body ?? {}),
-    );
+    final response = await http
+        .post(
+          Uri.parse(baseUrl + path),
+          headers: {
+            'Content-Type': 'application/json',
+            if (token != null) 'Authorization': 'Bearer $token',
+            ...?headers,
+          },
+          body: jsonEncode(body ?? {}),
+        )
+        .timeout(const Duration(seconds: 15)); // Add 15 second timeout
 
     return _processResponse(response);
   }

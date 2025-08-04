@@ -37,7 +37,7 @@ class AdminProvider extends ChangeNotifier {
 
   Future<void> fetchDashboardStats() async {
     _loading = true;
-    notifyListeners();
+    // Don't call notifyListeners here to avoid setState during build
     final response = await ApiService.get('/admin/dashboard/stats');
     _loading = false;
     if (response['success'] == true) {
@@ -49,25 +49,129 @@ class AdminProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchUsers() async {
-    _loading = true;
-    notifyListeners();
-    final response = await ApiService.get('/admin/users');
+/// Fetches the student list using the documented endpoint.
+/// Example request: GET /admin/users?role=student&page=1&per_page=20
+Future<void> fetchStudents({int page = 1, int perPage = 20}) async {
+  _loading = true;
+  _error = null;
+  notifyListeners();                       // show spinner
+
+  try {
+    final response = await ApiService.get(
+      '/admin/users?role=student&page=$page&per_page=$perPage',
+    );
+
     _loading = false;
+
     if (response['success'] == true) {
       _users = (response['data'] as List)
-          .map((userData) => User.fromJson(userData))
+          .map((json) => User.fromJson(json))
           .toList();
-      _error = null;
     } else {
-      _error = response['message'];
+      _error = response['message'] ?? 'Unknown error';
+    }
+  } catch (e) {
+    _loading = false;
+    _error = 'Network/API error: $e';
+  }
+
+  notifyListeners();                       // refresh UI
+}
+
+ /* Future<void> fetchUsers() async {
+    _loading = true;
+    // Don't call notifyListeners here to avoid setState during build
+
+    try {
+      // Try different endpoints that might be supported by the backend
+      Map<String, dynamic> response;
+
+      try {
+        // First try with proper pagination
+        response = await ApiService.get('/admin/users?limit=100&offset=0');
+      } catch (e) {
+        // If that fails, try without pagination
+        try {
+          response = await ApiService.get('/admin/users');
+        } catch (e2) {
+          // If that fails, try students-specific endpoint
+          response = await ApiService.get('/admin/students');
+        }
+      }
+
+      _loading = false;
+      if (response['success'] == true) {
+        _users = (response['data'] as List)
+            .map((userData) => User.fromJson(userData))
+            .toList();
+        _error = null;
+      } else {
+        _error = response['message'];
+      }
+    } catch (e) {
+      _loading = false;
+      _error = 'Failed to fetch users: $e';
+      print('🚨 Error fetching users: $e');
     }
     notifyListeners();
-  }
+  }*/
+
+  // Try alternative endpoints to get real users
+  /*Future<void> fetchRealUsers() async {
+    _loading = true;
+    notifyListeners();
+
+    try {
+      Map<String, dynamic>? response;
+
+      // Try multiple endpoints to find working one
+      List<String> endpoints = [
+        '/users', // Simple users endpoint
+        '/auth/users', // Auth users endpoint
+        '/attendance/users', // Attendance users endpoint
+        '/admin/organization/users', // Organization users
+        '/public/users', // Public users endpoint
+      ];
+
+      for (String endpoint in endpoints) {
+        try {
+          print('🔍 Trying endpoint: $endpoint');
+          response = await ApiService.get(
+            endpoint,
+          ).timeout(const Duration(seconds: 10));
+
+          if (response['success'] == true && response['data'] != null) {
+            print('✅ Success with endpoint: $endpoint');
+            break;
+          }
+        } catch (e) {
+          print('❌ Failed endpoint $endpoint: $e');
+          continue;
+        }
+      }
+
+      if (response != null && response['success'] == true) {
+        final List<dynamic> userData = response['data'] as List<dynamic>;
+        _users = userData.map((data) => User.fromJson(data)).toList();
+        _error = null;
+        print('✅ Loaded ${_users.length} real users from backend');
+      } else {
+        throw Exception('All endpoints failed to return user data');
+      }
+
+      _loading = false;
+    } catch (e) {
+      _loading = false;
+      _error = 'Failed to fetch real users: $e';
+      print('🚨 Error fetching real users: $e');
+      // Don't fallback to mock data - let user see the error
+    }
+    notifyListeners();
+  }*/
 
   Future<void> fetchOrganizations() async {
     _loading = true;
-    notifyListeners();
+    // Don't call notifyListeners here to avoid setState during build
 
     final response = await ApiService.get('/admin/organizations');
     _loading = false;
@@ -86,7 +190,7 @@ class AdminProvider extends ChangeNotifier {
   Future<void> fetchSessions() async {
     _loading = true;
     _error = null;
-    notifyListeners();
+    // Don't call notifyListeners here to avoid setState during build
 
     try {
       final response = await ApiService.get('/admin/sessions');
@@ -115,7 +219,7 @@ class AdminProvider extends ChangeNotifier {
       _loading = false;
       _error = 'Error fetching sessions: $e';
     }
-    notifyListeners();
+    // Don't call notifyListeners to avoid setState during build
   }
 
   /// Fetch details for a specific session using the new backend endpoint
@@ -148,7 +252,7 @@ class AdminProvider extends ChangeNotifier {
     double? customRadius,
   }) async {
     _loading = true;
-    notifyListeners();
+    // Don't call notifyListeners here to avoid setState during build
 
     try {
       final sessionData = <String, dynamic>{
@@ -173,7 +277,8 @@ class AdminProvider extends ChangeNotifier {
         // Fallback to organization location (existing logic)
         print('🔍 Fetching organization location for session creation...');
         final attendanceProvider = AttendanceProvider();
-        final orgLocation = await attendanceProvider.fetchOrganizationLocation();
+        final orgLocation = await attendanceProvider
+            .fetchOrganizationLocation();
 
         // Add organization location to session if available
         if (orgLocation != null &&
@@ -181,9 +286,12 @@ class AdminProvider extends ChangeNotifier {
             orgLocation['location']['latitude'] != null &&
             orgLocation['location']['longitude'] != null) {
           // Backend expects number format, not string
-          sessionData['latitude'] = (orgLocation['location']['latitude']).toDouble();
-          sessionData['longitude'] = (orgLocation['location']['longitude']).toDouble();
-          sessionData['radius'] = (orgLocation['location']['radius'] ?? 100).toDouble();
+          sessionData['latitude'] = (orgLocation['location']['latitude'])
+              .toDouble();
+          sessionData['longitude'] = (orgLocation['location']['longitude'])
+              .toDouble();
+          sessionData['radius'] = (orgLocation['location']['radius'] ?? 100)
+              .toDouble();
 
           print(
             '📍 Including organization location in session: '
@@ -737,38 +845,19 @@ class AdminProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // TODO: Implement actual API call when backend is ready
-      // final response = await ApiService.get('/admin/organization/$orgId/users');
-
-      // For now, return mock data for demo purposes
-      await Future.delayed(const Duration(seconds: 1));
-
-      final mockUsers = [
-        {
-          'id': '1',
-          'name': 'John Doe',
-          'email': 'john@example.com',
-          'role': 'student',
-        },
-        {
-          'id': '2',
-          'name': 'Jane Smith',
-          'email': 'jane@example.com',
-          'role': 'teacher',
-        },
-        {
-          'id': '3',
-          'name': 'Admin User',
-          'email': 'admin@example.com',
-          'role': 'admin',
-        },
-      ];
+      // Try to get real users from API
+      final response = await ApiService.get('/admin/organization/$orgId/users');
 
       _loading = false;
       notifyListeners();
-      return mockUsers;
+
+      if (response['success'] == true) {
+        return List<Map<String, dynamic>>.from(response['data']);
+      } else {
+        throw Exception('API returned error: ${response['message']}');
+      }
     } catch (e) {
-      _error = 'Failed to load users: $e';
+      _error = 'Failed to load real users: $e';
       _loading = false;
       notifyListeners();
       rethrow;
