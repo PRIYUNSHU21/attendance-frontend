@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/auth_provider.dart';
+import '../utils/app_theme.dart';
+import '../widgets/app_logo.dart';
 import 'login_screen.dart';
 
 class AdminRegisterScreen extends StatefulWidget {
@@ -196,329 +199,567 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Registration'),
-        backgroundColor: Colors.deepPurple,
-      ),
-      body: Center(
-        child: Card(
-          margin: const EdgeInsets.all(24),
-          elevation: 4,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Title
-                  const Center(
-                    child: Text(
-                      'Create Admin Account',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.deepPurple,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Info box for admin registration
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.shade200),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: AppTheme.background,
+      body: SafeArea(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [AppTheme.background, AppTheme.surfaceVariant],
+            ),
+          ),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 500),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // App Logo and Title
+                    Column(
                       children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: Colors.blue.shade700,
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Important Information',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue,
-                              ),
-                            ),
-                          ],
+                        AppLogo(size: 80, showText: false).animate().scale(
+                          duration: AppTheme.animDurationMedium,
+                          curve: Curves.elasticOut,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'ATTENDIFY',
+                          style: AppTheme.headingLarge.copyWith(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2.0,
+                          ),
+                        ).animate().fadeIn(
+                          duration: AppTheme.animDurationMedium,
+                          delay: 300.ms,
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'To register as an admin, you must already have a valid organization ID '
-                          'or be the first user in the system. If you have issues registering, '
-                          'please contact the system administrator.',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'For testing purposes: Log in with test@example.com / Password123!',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontStyle: FontStyle.italic,
+                        Text(
+                          'CREATE ADMIN ACCOUNT',
+                          style: AppTheme.bodyMedium.copyWith(
+                            color: AppTheme.textSecondary,
+                            letterSpacing: 1.5,
+                            fontWeight: FontWeight.w300,
                           ),
+                        ).animate().fadeIn(
+                          duration: AppTheme.animDurationMedium,
+                          delay: 500.ms,
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Admin Information Section
-                  const Text(
-                    'Admin Information',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Full Name',
-                      prefixIcon: Icon(Icons.person),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (v) =>
-                        v != null && v.isNotEmpty ? null : 'Enter your name',
-                    onSaved: (v) => _name = v ?? '',
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (v) => v != null && v.contains('@')
-                        ? null
-                        : 'Enter a valid email',
-                    onSaved: (v) => _email = v ?? '',
-                    onChanged: (v) {
-                      _email = v;
-                      // Auto-populate contact email if it's empty
-                      if (_contactEmailController.text.isEmpty) {
-                        _contactEmailController.text = v;
-                        _orgContactEmail = v;
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock),
-                      border: OutlineInputBorder(),
-                      helperText:
-                          'At least 8 characters with uppercase, number, and special character',
-                    ),
-                    obscureText: true,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) {
-                        return 'Password is required';
-                      }
-                      if (v.length < 8) {
-                        return 'Password must be at least 8 characters';
-                      }
-                      if (!RegExp(r'[A-Z]').hasMatch(v)) {
-                        return 'Password must contain at least one uppercase letter';
-                      }
-                      if (!RegExp(r'[0-9]').hasMatch(v)) {
-                        return 'Password must contain at least one number';
-                      }
-                      if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(v)) {
-                        return 'Password must contain at least one special character';
-                      }
-                      return null;
-                    },
-                    onSaved: (v) => _password = v ?? '',
-                    onChanged: (v) => _password = v,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Confirm Password',
-                      prefixIcon: Icon(Icons.lock_outline),
-                      border: OutlineInputBorder(),
-                    ),
-                    obscureText: true,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) {
-                        return 'Please confirm your password';
-                      }
-                      if (v != _password) {
-                        return 'Passwords do not match';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Password requirements info
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.shade200),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+
+                    const SizedBox(height: 32),
+
+                    // Welcome Text
+                    Column(
                       children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.security,
-                              color: Colors.orange.shade700,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Password Requirements',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.orange,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          'Join as Organization Admin',
+                          style: AppTheme.headingMedium.copyWith(
+                            color: AppTheme.primaryColor,
+                          ),
+                        ).animate().fadeIn(
+                          duration: AppTheme.animDurationMedium,
+                          delay: 600.ms,
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Your password must contain:',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                        Text(
+                          'Create your organization and start managing attendance',
+                          style: AppTheme.bodyMedium.copyWith(
+                            color: AppTheme.textMedium,
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          '  • At least 8 characters\n'
-                          '  • At least one uppercase letter (A-Z)\n'
-                          '  • At least one number (0-9)\n'
-                          '  • At least one special character (!@#\$%^&*)',
-                          style: TextStyle(fontSize: 12),
+                          textAlign: TextAlign.center,
+                        ).animate().fadeIn(
+                          duration: AppTheme.animDurationMedium,
+                          delay: 700.ms,
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Organization Information Section
-                  const Text(
-                    'Organization Information',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Organization Name',
-                      prefixIcon: Icon(Icons.business),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (v) => v != null && v.isNotEmpty
-                        ? null
-                        : 'Enter organization name',
-                    onSaved: (v) => _orgName = v ?? '',
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Organization Description *',
-                      prefixIcon: Icon(Icons.description),
-                      border: OutlineInputBorder(),
-                      helperText: 'Brief description of your organization',
-                    ),
-                    maxLines: 3,
-                    validator: (v) => v != null && v.isNotEmpty
-                        ? null
-                        : 'Please enter a description for your organization',
-                    onSaved: (v) => _orgDescription = v ?? '',
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _contactEmailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Organization Contact Email',
-                      prefixIcon: Icon(Icons.contact_mail),
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (v) => v != null && v.contains('@')
-                        ? null
-                        : 'Enter a valid contact email',
-                    onSaved: (v) => _orgContactEmail = v ?? '',
-                  ),
-                  const SizedBox(height: 16),
-                  // Error message display
-                  if (_error != null)
+
+                    const SizedBox(height: 40),
+
+                    // Registration Card
                     Container(
-                      padding: const EdgeInsets.all(16),
-                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(32),
                       decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.shade300),
+                        color: Colors.white,
+                        borderRadius: AppTheme.borderRadiusLarge,
+                        boxShadow: AppTheme.shadowMd,
                       ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.error_outline, color: Colors.red.shade700),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Registration Error',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red.shade900,
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Info box for admin registration
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppTheme.info.withOpacity(0.1),
+                                    AppTheme.info.withOpacity(0.05),
+                                  ],
+                                ),
+                                borderRadius: AppTheme.borderRadiusMedium,
+                                border: Border.all(
+                                  color: AppTheme.info.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.info_outline,
+                                        color: AppTheme.info,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Admin Registration',
+                                        style: AppTheme.bodyMedium.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.info,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Create your organization and become the first admin. You will be able to manage attendance sessions and add team members.',
+                                    style: AppTheme.bodySmall.copyWith(
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(height: 32),
+
+                            // Admin Information Section
+                            Text(
+                              'Admin Information',
+                              style: AppTheme.headingSmall.copyWith(
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Admin Name Field
+                            TextFormField(
+                              decoration: InputDecoration(
+                                labelText: 'Full Name',
+                                hintText: 'Enter your full name',
+                                prefixIcon: Icon(
+                                  Icons.person_outline,
+                                  color: AppTheme.primaryColor,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(
+                                    color: AppTheme.outline,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(
+                                    color: AppTheme.primaryColor,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                              validator: (v) => v != null && v.isNotEmpty
+                                  ? null
+                                  : 'Enter your name',
+                              onSaved: (v) => _name = v ?? '',
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Email Field
+                            TextFormField(
+                              decoration: InputDecoration(
+                                labelText: 'Email',
+                                hintText: 'Enter your email address',
+                                prefixIcon: Icon(
+                                  Icons.email_outlined,
+                                  color: AppTheme.primaryColor,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(
+                                    color: AppTheme.outline,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(
+                                    color: AppTheme.primaryColor,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (v) => v != null && v.contains('@')
+                                  ? null
+                                  : 'Enter a valid email',
+                              onSaved: (v) => _email = v ?? '',
+                              onChanged: (v) {
+                                _email = v;
+                                // Auto-populate contact email if it's empty
+                                if (_contactEmailController.text.isEmpty) {
+                                  _contactEmailController.text = v;
+                                  _orgContactEmail = v;
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Password Field
+                            TextFormField(
+                              decoration: InputDecoration(
+                                labelText: 'Password',
+                                hintText: 'Create a strong password',
+                                prefixIcon: Icon(
+                                  Icons.lock_outline,
+                                  color: AppTheme.primaryColor,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(
+                                    color: AppTheme.outline,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(
+                                    color: AppTheme.primaryColor,
+                                    width: 2,
+                                  ),
+                                ),
+                                helperText:
+                                    'Min 8 chars, uppercase, number, special char',
+                                helperStyle: AppTheme.bodySmall.copyWith(
+                                  color: AppTheme.textTertiary,
+                                ),
+                              ),
+                              obscureText: true,
+                              validator: (v) {
+                                if (v == null || v.isEmpty) {
+                                  return 'Password is required';
+                                }
+                                if (v.length < 8) {
+                                  return 'Password must be at least 8 characters';
+                                }
+                                if (!RegExp(r'[A-Z]').hasMatch(v)) {
+                                  return 'Password must contain at least one uppercase letter';
+                                }
+                                if (!RegExp(r'[0-9]').hasMatch(v)) {
+                                  return 'Password must contain at least one number';
+                                }
+                                if (!RegExp(
+                                  r'[!@#$%^&*(),.?":{}|<>]',
+                                ).hasMatch(v)) {
+                                  return 'Password must contain at least one special character';
+                                }
+                                return null;
+                              },
+                              onSaved: (v) => _password = v ?? '',
+                              onChanged: (v) => _password = v,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Confirm Password Field
+                            TextFormField(
+                              decoration: InputDecoration(
+                                labelText: 'Confirm Password',
+                                hintText: 'Re-enter your password',
+                                prefixIcon: Icon(
+                                  Icons.lock_outline,
+                                  color: AppTheme.primaryColor,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(
+                                    color: AppTheme.outline,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(
+                                    color: AppTheme.primaryColor,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                              obscureText: true,
+                              validator: (v) {
+                                if (v == null || v.isEmpty) {
+                                  return 'Please confirm your password';
+                                }
+                                if (v != _password) {
+                                  return 'Passwords do not match';
+                                }
+                                return null;
+                              },
+                            ),
+
+                            const SizedBox(height: 32),
+
+                            // Organization Information Section
+                            Text(
+                              'Organization Information',
+                              style: AppTheme.headingSmall.copyWith(
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Organization Name Field
+                            TextFormField(
+                              decoration: InputDecoration(
+                                labelText: 'Organization Name',
+                                hintText: 'Enter your organization name',
+                                prefixIcon: Icon(
+                                  Icons.business_outlined,
+                                  color: AppTheme.primaryColor,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(
+                                    color: AppTheme.outline,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(
+                                    color: AppTheme.primaryColor,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                              validator: (v) => v != null && v.isNotEmpty
+                                  ? null
+                                  : 'Enter organization name',
+                              onSaved: (v) => _orgName = v ?? '',
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Organization Description Field
+                            TextFormField(
+                              decoration: InputDecoration(
+                                labelText: 'Organization Description',
+                                hintText:
+                                    'Brief description of your organization',
+                                prefixIcon: Icon(
+                                  Icons.description_outlined,
+                                  color: AppTheme.primaryColor,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(
+                                    color: AppTheme.outline,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(
+                                    color: AppTheme.primaryColor,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                              maxLines: 3,
+                              validator: (v) => v != null && v.isNotEmpty
+                                  ? null
+                                  : 'Please enter a description for your organization',
+                              onSaved: (v) => _orgDescription = v ?? '',
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Organization Contact Email Field
+                            TextFormField(
+                              controller: _contactEmailController,
+                              decoration: InputDecoration(
+                                labelText: 'Organization Contact Email',
+                                hintText: 'Contact email for your organization',
+                                prefixIcon: Icon(
+                                  Icons.contact_mail_outlined,
+                                  color: AppTheme.primaryColor,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(
+                                    color: AppTheme.outline,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  borderSide: BorderSide(
+                                    color: AppTheme.primaryColor,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (v) => v != null && v.contains('@')
+                                  ? null
+                                  : 'Enter a valid contact email',
+                              onSaved: (v) => _orgContactEmail = v ?? '',
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // Error message display
+                            if (_error != null)
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                margin: const EdgeInsets.only(bottom: 24),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.error.withOpacity(0.1),
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  border: Border.all(
+                                    color: AppTheme.error.withOpacity(0.3),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline,
+                                      color: AppTheme.error,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Registration Error',
+                                            style: AppTheme.bodyMedium.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme.error,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _error!,
+                                            style: AppTheme.bodySmall.copyWith(
+                                              color: AppTheme.error,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: () =>
+                                          setState(() => _error = null),
+                                      icon: Icon(
+                                        Icons.close,
+                                        color: AppTheme.error,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                            // Register Button
+                            ElevatedButton(
+                              onPressed: _loading ? null : _register,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryColor,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                ),
+                                elevation: 2,
+                              ),
+                              child: _loading
+                                  ? SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      'Create Admin Account',
+                                      style: AppTheme.bodyLarge.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // Login Link
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
                                 Text(
-                                  _error!,
-                                  style: TextStyle(color: Colors.red.shade800),
+                                  'Already have an account? ',
+                                  style: AppTheme.bodyMedium.copyWith(
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pushReplacementNamed(
+                                        context,
+                                        LoginScreen.routeName,
+                                      ),
+                                  child: Text(
+                                    'Sign In',
+                                    style: AppTheme.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.primaryColor,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                          IconButton(
-                            onPressed: () => setState(() => _error = null),
-                            icon: Icon(Icons.close, color: Colors.red.shade700),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ElevatedButton(
-                    onPressed: _loading ? null : _register,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: _loading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'Register as Admin',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Already have an account?'),
-                      TextButton(
-                        onPressed: () => Navigator.pushReplacementNamed(
-                          context,
-                          LoginScreen.routeName,
+                          ],
                         ),
-                        child: const Text('Log In'),
                       ),
-                    ],
-                  ),
-                ],
+                    ).animate().slideY(
+                      begin: 0.3,
+                      duration: AppTheme.animDurationMedium,
+                      curve: Curves.easeOut,
+                      delay: 800.ms,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

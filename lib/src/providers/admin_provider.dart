@@ -35,6 +35,20 @@ class AdminProvider extends ChangeNotifier {
   bool get loading => _loading;
   String? get error => _error;
 
+  // Add debugging method to show current state
+  void debugCurrentState() {
+    print('=== AdminProvider Debug State ===');
+    print('Loading: $_loading');
+    print('Error: $_error');
+    print('Users count: ${_users.length}');
+    print('Organizations count: ${_organizations.length}');
+    print('Sessions count: ${_sessions.length}');
+    if (_users.isNotEmpty) {
+      print('Sample user: ${_users.first.name} (${_users.first.role})');
+    }
+    print('================================');
+  }
+
   Future<void> fetchDashboardStats() async {
     _loading = true;
     // Don't call notifyListeners here to avoid setState during build
@@ -49,36 +63,127 @@ class AdminProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-/// Fetches the student list using the documented endpoint.
-/// Example request: GET /admin/users?role=student&page=1&per_page=20
-Future<void> fetchStudents({int page = 1, int perPage = 20}) async {
-  _loading = true;
-  _error = null;
-  notifyListeners();                       // show spinner
+  /// Fetches the student list using the CORRECT working endpoint from API guide.
+  /// Endpoint: GET /admin/students?page=1&per_page=20
+  /// This works for both admins and teachers - teachers see their org students
+  Future<void> fetchStudents({int page = 1, int perPage = 20}) async {
+    _loading = true;
+    _error = null;
+    notifyListeners(); // show spinner
 
-  try {
-    final response = await ApiService.get(
-      '/admin/users?role=student&page=$page&per_page=$perPage',
-    );
+    try {
+      print('🔍 Using CORRECT endpoint: /admin/students');
+      final response = await ApiService.get(
+        '/admin/students?page=$page&per_page=$perPage',
+      );
 
-    _loading = false;
+      _loading = false;
 
-    if (response['success'] == true) {
-      _users = (response['data'] as List)
-          .map((json) => User.fromJson(json))
-          .toList();
-    } else {
-      _error = response['message'] ?? 'Unknown error';
+      if (response['success'] == true) {
+        // API Guide shows response format: data.students array, not direct data array
+        final studentsData = response['data'];
+        if (studentsData != null && studentsData['students'] != null) {
+          _users = (studentsData['students'] as List)
+              .map((json) => User.fromJson(json))
+              .toList();
+
+          // Log pagination info from API response
+          final pagination = studentsData['pagination'];
+          if (pagination != null) {
+            print(
+              '📊 Pagination: Page ${pagination['page']} of ${pagination['total_pages']}, Total: ${pagination['total']}',
+            );
+          }
+
+          print('✅ Loaded ${_users.length} students using /admin/students');
+        } else {
+          _users = [];
+          print('⚠️ No students data in response');
+        }
+        _error = null;
+      } else {
+        _error = response['message'] ?? 'Unknown error';
+        print('❌ API error: $_error');
+      }
+    } catch (e) {
+      _loading = false;
+      _error = 'Network/API error: $e';
+      print('💥 Exception: $e');
     }
-  } catch (e) {
-    _loading = false;
-    _error = 'Network/API error: $e';
+
+    notifyListeners(); // refresh UI
   }
 
-  notifyListeners();                       // refresh UI
-}
+  /// Fetches students for teachers - tries multiple endpoints
+  /// Teachers may not have admin access, so we try organization-specific endpoints
+  Future<void> fetchStudentsForTeacher() async {
+    _loading = true;
+    _error = null;
+    notifyListeners();
 
- /* Future<void> fetchUsers() async {
+    try {
+      Map<String, dynamic>? response;
+
+      // Try different endpoints - START with the working one from API guide
+      List<String> endpoints = [
+        '/admin/students', // CORRECT working endpoint from API guide
+        '/users?role=student', // Public users endpoint
+        '/attendance/students', // Attendance-related students
+        '/organization/students', // Organization students
+        '/teacher/students', // Teacher-specific endpoint
+      ];
+
+      for (String endpoint in endpoints) {
+        try {
+          print('🔍 Trying endpoint for teacher: $endpoint');
+          response = await ApiService.get(
+            endpoint,
+          ).timeout(const Duration(seconds: 10));
+
+          if (response['success'] == true && response['data'] != null) {
+            print('✅ Success with teacher endpoint: $endpoint');
+            break;
+          }
+        } catch (e) {
+          print('❌ Failed teacher endpoint $endpoint: $e');
+          continue;
+        }
+      }
+
+      _loading = false;
+
+      if (response != null && response['success'] == true) {
+        // Handle both response formats: direct array or nested with students array
+        List<dynamic> userData;
+
+        if (response['data'] is List) {
+          // Direct array format
+          userData = response['data'] as List<dynamic>;
+        } else if (response['data']['students'] != null) {
+          // Nested format from API guide
+          userData = response['data']['students'] as List<dynamic>;
+        } else {
+          userData = [];
+        }
+
+        _users = userData.map((data) => User.fromJson(data)).toList();
+        _error = null;
+        print('✅ Loaded ${_users.length} students for teacher from backend');
+      } else {
+        _error =
+            'No students found. You may not have permission to view students.';
+        print('❌ All teacher endpoints failed to return student data');
+      }
+    } catch (e) {
+      _loading = false;
+      _error = 'Failed to fetch students: $e';
+      print('🚨 Error fetching students for teacher: $e');
+    }
+
+    notifyListeners();
+  }
+
+  /* Future<void> fetchUsers() async {
     _loading = true;
     // Don't call notifyListeners here to avoid setState during build
 
@@ -116,8 +221,8 @@ Future<void> fetchStudents({int page = 1, int perPage = 20}) async {
     notifyListeners();
   }*/
 
-  // Try alternative endpoints to get real users
-  /*Future<void> fetchRealUsers() async {
+  // Try alternative endpoints to get real users - FALLBACK METHOD
+  Future<void> fetchRealUsers() async {
     _loading = true;
     notifyListeners();
 
@@ -167,7 +272,7 @@ Future<void> fetchStudents({int page = 1, int perPage = 20}) async {
       // Don't fallback to mock data - let user see the error
     }
     notifyListeners();
-  }*/
+  }
 
   Future<void> fetchOrganizations() async {
     _loading = true;
@@ -190,13 +295,16 @@ Future<void> fetchStudents({int page = 1, int perPage = 20}) async {
   Future<void> fetchSessions() async {
     _loading = true;
     _error = null;
-    // Don't call notifyListeners here to avoid setState during build
+    notifyListeners(); // Show loading state immediately
 
     try {
-      final response = await ApiService.get('/admin/sessions');
+      // Use the WORKING endpoint that's being used in teacher dashboard
+      print('🔍 Using WORKING endpoint: /attendance/public-sessions');
+      final response = await ApiService.get('/attendance/public-sessions');
       _loading = false;
 
       if (response['success'] == true) {
+        // Convert response to Session objects
         _sessions = (response['data'] as List)
             .map((sessionData) => Session.fromJson(sessionData))
             .toList();
@@ -212,14 +320,17 @@ Future<void> fetchStudents({int page = 1, int perPage = 20}) async {
         });
 
         _error = null;
+        print('✅ Loaded ${_sessions.length} sessions using working endpoint');
       } else {
         _error = response['message'] ?? 'Failed to fetch sessions';
+        print('❌ API error: $_error');
       }
     } catch (e) {
       _loading = false;
       _error = 'Error fetching sessions: $e';
+      print('💥 Exception: $e');
     }
-    // Don't call notifyListeners to avoid setState during build
+    notifyListeners(); // Update UI after operation completes
   }
 
   /// Fetch details for a specific session using the new backend endpoint
@@ -862,6 +973,78 @@ Future<void> fetchStudents({int page = 1, int perPage = 20}) async {
       notifyListeners();
       rethrow;
     }
+  }
+
+  /// Fetch students from the current user's organization
+  /// This method is suitable for teachers who should only see their organization's students
+  Future<void> fetchOrganizationStudents() async {
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      // Try to get students from the user's organization
+      Map<String, dynamic>? response;
+
+      // Try organization-specific endpoints - START with the working one
+      List<String> orgEndpoints = [
+        '/admin/students', // CORRECT working endpoint from API guide
+        '/organization/users?role=student', // Organization students
+        '/users?role=student', // All students (filtered by org on backend)
+        '/attendance/organization/students', // Attendance org students
+      ];
+
+      for (String endpoint in orgEndpoints) {
+        try {
+          print('🔍 Trying organization endpoint: $endpoint');
+          response = await ApiService.get(
+            endpoint,
+          ).timeout(const Duration(seconds: 10));
+
+          if (response['success'] == true && response['data'] != null) {
+            print('✅ Success with organization endpoint: $endpoint');
+            break;
+          }
+        } catch (e) {
+          print('❌ Failed organization endpoint $endpoint: $e');
+          continue;
+        }
+      }
+
+      _loading = false;
+
+      if (response != null && response['success'] == true) {
+        List<dynamic> userData;
+
+        // Handle both response formats: direct array or nested with students array
+        if (response['data'] is List) {
+          // Direct array format
+          userData = response['data'] as List<dynamic>;
+        } else if (response['data']['students'] != null) {
+          // Nested format from API guide
+          userData = response['data']['students'] as List<dynamic>;
+        } else {
+          userData = [];
+        }
+
+        // Filter for students only (in case backend returns all users)
+        _users = userData
+            .map((data) => User.fromJson(data))
+            .where((user) => user.role == 'student')
+            .toList();
+        _error = null;
+        print('✅ Loaded ${_users.length} organization students');
+      } else {
+        _error = 'No students found in your organization.';
+        print('❌ All organization endpoints failed');
+      }
+    } catch (e) {
+      _loading = false;
+      _error = 'Failed to fetch organization students: $e';
+      print('🚨 Error fetching organization students: $e');
+    }
+
+    notifyListeners();
   }
 
   Future<void> updateUserRole(String userId, String newRole) async {

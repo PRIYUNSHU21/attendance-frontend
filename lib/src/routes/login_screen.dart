@@ -82,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 32),
                           Text(
-                            'AttendanceTracker',
+                            'ATTENDIFY',
                             style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,

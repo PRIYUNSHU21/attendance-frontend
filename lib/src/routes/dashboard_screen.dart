@@ -286,7 +286,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'AttendanceTracker',
+                              'ATTENDIFY',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,

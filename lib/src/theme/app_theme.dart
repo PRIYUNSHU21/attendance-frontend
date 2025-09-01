@@ -153,13 +153,11 @@ class AppTheme {
         tertiary: accentColor,
         tertiaryContainer: Color(0xFFFEF3C7), // Amber 100
         surface: surfaceColor,
-        background: backgroundColor,
         error: errorColor,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onTertiary: Colors.white,
         onSurface: textPrimary,
-        onBackground: textPrimary,
         onError: Colors.white,
         outline: dividerColor,
         shadow: Color(0x1A000000),
@@ -326,14 +324,12 @@ class AppTheme {
         secondaryContainer: Color(0xFF047857), // Emerald 700
         tertiary: accentColor,
         tertiaryContainer: Color(0xFFD97706), // Amber 600
-        surface: Color(0xFF1F2937), // Gray 800
-        background: Color(0xFF111827), // Gray 900
+        surface: Color(0xFF1F2937), // Gray 900
         error: errorColor,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onTertiary: Colors.white,
         onSurface: Color(0xFFF9FAFB), // Gray 50
-        onBackground: Color(0xFFF9FAFB), // Gray 50
         onError: Colors.white,
         outline: Color(0xFF374151), // Gray 700
         shadow: Color(0x3F000000),

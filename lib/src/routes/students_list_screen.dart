@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/admin_provider.dart';
+import '../providers/auth_provider.dart';
 import '../models/user.dart';
 import '../models/organization.dart';
 
@@ -24,18 +25,46 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
 
   void _loadData() async {
     final adminProvider = Provider.of<AdminProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
     try {
-      // ONLY fetch real users - NO MOCK DATA!
-      print('🚀 Loading REAL student data from backend...');
+      // Check user role and use appropriate method
+      final userRole = authProvider.user?.role;
+      print('🚀 Loading student data for user role: $userRole');
+
+      // According to API guide, /admin/students works for both admins and teachers
+      // Teachers automatically see only their organization's students
+      print('📋 Using /admin/students endpoint (works for all roles)');
       await adminProvider.fetchStudents();
+
+      // If that fails, try the fallback methods
+      if (adminProvider.users.isEmpty && adminProvider.error != null) {
+        print('🔄 Primary /admin/students failed, trying fallback methods...');
+
+        if (userRole == 'admin') {
+          // Admins can try the organization method as fallback
+          await adminProvider.fetchOrganizationStudents();
+        } else {
+          // Teachers can try the teacher-specific method as fallback
+          await adminProvider.fetchStudentsForTeacher();
+        }
+      }
+
+      // If still no students, try the ultimate fallback
+      if (adminProvider.users.isEmpty && adminProvider.error != null) {
+        print('🔄 All methods failed, trying ultimate fallback...');
+        await adminProvider.fetchRealUsers();
+      }
+
       await adminProvider.fetchOrganizations();
 
+      // Debug current state
+      adminProvider.debugCurrentState();
+
       if (adminProvider.error != null) {
-        print('❌ Error loading real users: ${adminProvider.error}');
+        print('❌ Error loading students: ${adminProvider.error}');
       } else {
-        print(
-          '✅ Successfully loaded real users: ${adminProvider.users.length}',
-        );
+        print('✅ Successfully loaded students: ${adminProvider.users.length}');
       }
     } catch (e) {
       print('💥 Critical error loading data: $e');

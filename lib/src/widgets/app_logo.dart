@@ -112,7 +112,7 @@ class AppLogo extends StatelessWidget {
         if (showText) ...[
           SizedBox(height: size * 0.2),
           Text(
-            'AttendanceTracker',
+            'ATTENDIFY',
             style: TextStyle(
               fontSize: size * 0.2,
               fontWeight: FontWeight.bold,
@@ -225,7 +225,7 @@ class CompactAppLogo extends StatelessWidget {
         if (showText) ...[
           SizedBox(width: size * 0.3),
           Text(
-            'AttendanceTracker',
+            'ATTENDIFY',
             style: TextStyle(
               fontSize: size * 0.4,
               fontWeight: FontWeight.bold,

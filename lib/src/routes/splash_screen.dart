@@ -120,19 +120,15 @@ class _SplashScreenState extends State<SplashScreen>
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppTheme.primaryColor,
-              AppTheme.primaryLight,
-              AppTheme.secondaryColor,
-            ],
-            stops: const [0.0, 0.6, 1.0],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [AppTheme.primaryColor, AppTheme.primaryLight],
+            stops: const [0.0, 1.0],
           ),
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
             child: Column(
               children: [
                 // Top spacing
@@ -140,7 +136,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                 // Logo Section
                 Expanded(
-                  flex: 4,
+                  flex: 3,
                   child: Center(
                     child: AnimatedBuilder(
                       animation: Listenable.merge([
@@ -151,35 +147,48 @@ class _SplashScreenState extends State<SplashScreen>
                         return Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            // Animated Logo
+                            // Simple Logo Animation
                             Transform.scale(
                               scale: _logoScale.value,
                               child: FadeTransition(
                                 opacity: _logoFade,
-                                child: AppLogo(
-                                  size: 150,
-                                  showText: false,
-                                  iconColor: Colors.white.withOpacity(0.95),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(30),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.white.withOpacity(0.2),
+                                        blurRadius: 20,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: AppLogo(
+                                    size: 120,
+                                    showText: false,
+                                    iconColor: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
 
                             const SizedBox(height: 40),
 
-                            // App Name with Slide Animation
+                            // Clean App Name
                             SlideTransition(
                               position: _textSlide,
                               child: FadeTransition(
                                 opacity: _textFade,
                                 child: Column(
                                   children: [
+                                    // Main App Name
                                     Text(
-                                      'AttendanceTracker',
+                                      'ATTENDIFY',
                                       style: TextStyle(
                                         fontSize: 32,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
-                                        letterSpacing: 1.5,
+                                        letterSpacing: 2.0,
                                         shadows: [
                                           Shadow(
                                             color: Colors.black.withOpacity(
@@ -192,12 +201,14 @@ class _SplashScreenState extends State<SplashScreen>
                                       ),
                                     ),
                                     const SizedBox(height: 12),
+
+                                    // Tagline
                                     Text(
-                                      'Smart • Reliable • Efficient',
+                                      'Smart Attendance Management',
                                       style: TextStyle(
                                         fontSize: 16,
                                         color: Colors.white.withOpacity(0.9),
-                                        letterSpacing: 2.0,
+                                        letterSpacing: 1.0,
                                         fontWeight: FontWeight.w300,
                                       ),
                                     ),
@@ -212,7 +223,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
 
-                // Loading Section
+                // Simple Loading Section
                 Expanded(
                   flex: 2,
                   child: AnimatedBuilder(
@@ -223,37 +234,27 @@ class _SplashScreenState extends State<SplashScreen>
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            // Custom Loading Indicator
-                            Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(30),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.2),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 3,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white.withOpacity(0.8),
-                                  ),
+                            // Simple Loading Indicator
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white.withOpacity(0.8),
                                 ),
                               ),
                             ),
 
                             const SizedBox(height: 24),
 
+                            // Loading Text
                             Text(
-                              'Initializing your workspace...',
+                              'Loading...',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.8),
-                                fontSize: 16,
-                                letterSpacing: 0.8,
+                                color: Colors.white.withOpacity(0.7),
+                                fontSize: 14,
+                                letterSpacing: 0.5,
                                 fontWeight: FontWeight.w300,
                               ),
                             ),
@@ -264,49 +265,21 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
 
-                // Footer Section
+                // Simple Footer
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 40),
+                  padding: const EdgeInsets.only(bottom: 20),
                   child: AnimatedBuilder(
                     animation: _progressController,
                     builder: (context, child) {
                       return FadeTransition(
                         opacity: _progressFade,
-                        child: Column(
-                          children: [
-                            Container(
-                              height: 1,
-                              width: 100,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.transparent,
-                                    Colors.white.withOpacity(0.3),
-                                    Colors.transparent,
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Powered by Modern Flutter Technology',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.6),
-                                fontSize: 12,
-                                letterSpacing: 1.0,
-                                fontWeight: FontWeight.w300,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Version 1.0.0',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.4),
-                                fontSize: 10,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          'Version 1.0.0',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.5),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w300,
+                          ),
                         ),
                       );
                     },

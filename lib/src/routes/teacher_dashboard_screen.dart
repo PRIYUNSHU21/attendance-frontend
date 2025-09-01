@@ -518,7 +518,21 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
   }
 
   Widget _buildRecentSessions(AdminProvider adminProvider) {
-    final recentSessions = adminProvider.sessions.take(3).toList();
+    // Filter for expired/past sessions only
+    final expiredSessions = adminProvider.sessions.where((session) {
+      // Session is expired if:
+      // 1. It's marked as inactive, OR
+      // 2. Current time is past the end time
+      final now = DateTime.now();
+      final isExpired = !session.isActive || now.isAfter(session.endTime);
+      return isExpired;
+    }).toList();
+
+    // Sort expired sessions by end time (most recently ended first)
+    expiredSessions.sort((a, b) => b.endTime.compareTo(a.endTime));
+
+    // Take only the 3 most recent expired sessions
+    final recentExpiredSessions = expiredSessions.take(3).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -535,19 +549,22 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               color: AppTheme.primaryColor,
             ).animate().fadeIn(duration: 400.ms).scale(duration: 400.ms),
           )
-        else if (recentSessions.isEmpty)
+        else if (recentExpiredSessions.isEmpty)
           _buildEmptyState(
-            'No sessions yet',
-            'Create your first session to get started',
-            Icons.event_note,
+            'No past sessions yet',
+            'Past sessions will appear here once they expire',
+            Icons.history,
           )
         else
           Column(
             children: List.generate(
-              recentSessions.length,
+              recentExpiredSessions.length,
               (index) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: _buildRecentSessionCard(recentSessions[index], index),
+                child: _buildRecentSessionCard(
+                  recentExpiredSessions[index],
+                  index,
+                ),
               ),
             ),
           ),
@@ -556,8 +573,6 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
   }
 
   Widget _buildRecentSessionCard(Session session, [int index = 0]) {
-    final isActive = session.isActive;
-
     return components.SessionCard(
       title: session.sessionName,
       description: session.description.isEmpty
@@ -565,9 +580,18 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
           : session.description,
       timeRange:
           '${_formatDate(session.startTime)} • ${_formatTime(session.startTime)} - ${_formatTime(session.endTime)}',
-      isActive: isActive,
+      isActive:
+          false, // Always show as inactive since these are expired sessions
       onTap: () {
-        // Navigate to session details
+        // Navigate to session details or show read-only view for expired sessions
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${session.sessionName} ended on ${_formatDate(session.endTime)}',
+            ),
+            backgroundColor: Colors.grey[600],
+          ),
+        );
       },
       index: index,
     );
@@ -582,12 +606,13 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
             .fadeIn(duration: 400.ms, delay: 300.ms)
             .slideX(begin: 0.2, end: 0, duration: 400.ms, delay: 300.ms),
         const SizedBox(height: 16),
+        // Primary actions - most important
         Row(
           children: [
             Expanded(
               child: components.ActionCard(
                 title: 'New Session',
-                subtitle: 'Create a new attendance session',
+                subtitle: 'Create attendance session',
                 icon: Icons.add_circle,
                 color: AppTheme.primaryColor,
                 onTap: () => Navigator.pushNamed(
@@ -600,75 +625,104 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
             const SizedBox(width: 16),
             Expanded(
               child: components.ActionCard(
-                title: 'Analytics & Reports',
-                subtitle: 'View reports and session history',
-                icon: Icons.analytics,
-                color: AppTheme.accentColor,
-                onTap: () => Navigator.pushNamed(context, '/analytics'),
+                title: 'View Students',
+                subtitle: 'Manage students',
+                icon: Icons.people,
+                color: AppTheme.successColor,
+                onTap: () => Navigator.pushNamed(context, '/students-list'),
                 index: 1,
               ),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        // Add organization management cards
+        // Secondary actions
         Row(
           children: [
             Expanded(
               child: components.ActionCard(
-                title: 'Location Setup',
-                subtitle: 'Configure attendance boundaries',
-                icon: Icons.location_on,
-                color: Colors.blue,
-                onTap: () => Navigator.pushNamed(
-                  context,
-                  OrganizationLocationSetupScreen.routeName,
-                ),
+                title: 'Attendance Records',
+                subtitle: 'View attendance history',
+                icon: Icons.fact_check,
+                color: AppTheme.accentColor,
+                onTap: () =>
+                    Navigator.pushNamed(context, '/attendance-records'),
                 index: 2,
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: components.ActionCard(
-                title: 'View Students',
-                subtitle: 'Manage students by organization',
-                icon: Icons.people,
-                color: AppTheme.successColor,
-                onTap: () => Navigator.pushNamed(context, '/students-list'),
+                title: 'Settings',
+                subtitle: 'Configure location & users',
+                icon: Icons.settings,
+                color: Colors.blue,
+                onTap: () => _showSettingsMenu(context),
                 index: 3,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        // Add a students management card
-        Row(
+      ],
+    );
+  }
+
+  void _showSettingsMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: components.ActionCard(
-                title: 'Attendance Records',
-                subtitle: 'View student attendance details',
-                icon: Icons.fact_check,
-                color: AppTheme.successColor,
-                onTap: () =>
-                    Navigator.pushNamed(context, '/attendance-records'),
-                index: 4,
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: components.ActionCard(
-                title: 'User Management',
-                subtitle: 'Manage organization users',
-                icon: Icons.manage_accounts,
-                color: AppTheme.primaryColor,
-                onTap: () => Navigator.pushNamed(context, '/user-management'),
-                index: 5,
-              ),
+            const SizedBox(height: 20),
+            Text('Settings & Configuration', style: AppTheme.headingSmall),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.location_on, color: Colors.blue),
+              title: const Text('Location Setup'),
+              subtitle: const Text('Configure attendance boundaries'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(
+                  context,
+                  OrganizationLocationSetupScreen.routeName,
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.manage_accounts, color: Colors.orange),
+              title: const Text('User Management'),
+              subtitle: const Text('Manage organization users'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/user-management');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.analytics, color: Colors.green),
+              title: const Text('Analytics & Reports'),
+              subtitle: const Text('View detailed reports'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/analytics');
+              },
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 

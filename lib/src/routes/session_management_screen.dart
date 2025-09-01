@@ -19,7 +19,12 @@ class _SessionManagementScreenState extends State<SessionManagementScreen> {
   @override
   void initState() {
     super.initState();
-    Provider.of<AdminProvider>(context, listen: false).fetchSessions();
+    // Use post frame callback to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<AdminProvider>(context, listen: false).fetchSessions();
+      }
+    });
   }
 
   void _showCreateSessionDialog() async {
@@ -56,58 +61,141 @@ class _SessionManagementScreenState extends State<SessionManagementScreen> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
+            tooltip: 'Refresh',
+          ),
+          IconButton(
             icon: const Icon(Icons.add_circle),
             onPressed: _showCreateSessionDialog,
             tooltip: 'Create New Session',
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: admin.loading
-                ? const Center(child: CircularProgressIndicator())
-                : admin.error != null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Error: ${admin.error}'),
-                        ElevatedButton(
-                          onPressed: () => admin.fetchSessions(),
-                          child: const Text('Retry'),
-                        ),
-                      ],
+      body: RefreshIndicator(
+        onRefresh: () async => _loadData(),
+        child: Column(
+          children: [
+            // Add a status bar to show loading/error state
+            if (admin.loading)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                color: AppTheme.primaryColor.withOpacity(0.1),
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-                  )
-                : admin.sessions.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.event_note, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          'No sessions found',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                    const SizedBox(width: 12),
+                    Text(
+                      'Loading sessions...',
+                      style: AppTheme.bodySmall.copyWith(
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (admin.error != null && !admin.loading)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                color: Colors.red.withOpacity(0.1),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error, color: Colors.red, size: 16),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Error: ${admin.error}',
+                        style: AppTheme.bodySmall.copyWith(color: Colors.red),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _loadData,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: admin.loading && admin.sessions.isEmpty
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 16),
+                          Text('Loading sessions...'),
+                        ],
+                      ),
+                    )
+                  : admin.error != null && admin.sessions.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: Colors.red,
                           ),
-                        ),
-                        SizedBox(height: 8),
-                        Text('Create your first session to get started!'),
-                      ],
+                          const SizedBox(height: 16),
+                          Text(
+                            'Failed to load sessions',
+                            style: AppTheme.headingSmall.copyWith(
+                              color: Colors.red,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text('Error: ${admin.error}'),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: _loadData,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : admin.sessions.isEmpty
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.event_note, size: 64, color: Colors.grey),
+                          SizedBox(height: 16),
+                          Text(
+                            'No sessions found',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text('Create your first session to get started!'),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(8),
+                      itemCount: admin.sessions.length,
+                      itemBuilder: (context, index) {
+                        final session = admin.sessions[index];
+                        return SessionCard(session: session);
+                      },
                     ),
-                  )
-                : ListView.builder(
-                    itemCount: admin.sessions.length,
-                    itemBuilder: (context, index) {
-                      final session = admin.sessions[index];
-                      return SessionCard(session: session);
-                    },
-                  ),
-          ),
-        ],
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showCreateSessionDialog,
+        backgroundColor: AppTheme.primaryColor,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
