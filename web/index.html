@@ -54,35 +54,174 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(180deg, #0D7377 0%, #14A085 100%);
       color: white;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 32px;
     }
-    .loading-text {
+    .loading-content {
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
-    .spinner {
-      border: 3px solid rgba(255,255,255,0.3);
-      border-top: 3px solid white;
+    .logo-container {
+      width: 120px;
+      height: 120px;
+      background: linear-gradient(135deg, #0D7377 0%, #14A085 50%, #41B883 100%);
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 40px;
+      box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
+      position: relative;
+      animation: logoScale 2s ease-out infinite alternate;
+      overflow: hidden;
+    }
+    .logo-container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+      animation: logoShine 3s infinite;
+    }
+    .logo-letter {
+      font-size: 64px;
+      font-weight: 900;
+      color: white;
+      font-family: 'Arial Black', Arial, sans-serif;
+      text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      position: relative;
+      z-index: 2;
+      animation: letterPulse 2s ease-in-out infinite alternate;
+    }
+    .attendance-dots {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .dot {
+      width: 6px;
+      height: 6px;
+      background: #41B883;
       border-radius: 50%;
+      animation: dotBlink 1.5s infinite;
+    }
+    .dot:nth-child(2) {
+      animation-delay: 0.3s;
+    }
+    .dot:nth-child(3) {
+      animation-delay: 0.6s;
+    }
+    .app-title {
+      font-size: 32px;
+      font-weight: bold;
+      color: white;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      animation: textGlow 2s ease-in-out infinite alternate;
+    }
+    .app-subtitle {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 40px;
+      font-weight: 300;
+    }
+    .loading-spinner {
       width: 40px;
       height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top: 3px solid white;
+      border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
     }
+    .loading-text {
+      margin-top: 20px;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 300;
+    }
+    
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes logoScale {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.05); }
+    }
+    @keyframes logoShine {
+      0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+      100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+    @keyframes letterPulse {
+      0% { transform: scale(1); opacity: 0.9; }
+      100% { transform: scale(1.1); opacity: 1; }
+    }
+    @keyframes dotBlink {
+      0%, 50% { opacity: 0.3; transform: scale(0.8); }
+      25% { opacity: 1; transform: scale(1.2); }
+      75%, 100% { opacity: 0.6; transform: scale(1); }
+    }
+    
+    @keyframes textGlow {
+      0% { text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
+      100% { text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.2); }
+    }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .logo-container {
+        width: 100px;
+        height: 100px;
+        border-radius: 25px;
+      }
+      .logo-letter {
+        font-size: 52px;
+      }
+      .attendance-dots {
+        top: 12px;
+        right: 12px;
+      }
+      .dot {
+        width: 5px;
+        height: 5px;
+      }
+      .app-title {
+        font-size: 28px;
+      }
+      .loading {
+        padding: 20px;
+      }
     }
   </style>
 </head>
 <body>
   <!-- Loading screen -->
   <div id="loading" class="loading">
-    <div class="loading-text">
-      <div class="spinner"></div>
-      <h2>ATTENDIFY</h2>
-      <p>Loading your attendance system...</p>
+    <div class="loading-content">
+      <div class="logo-container">
+        <div class="logo-letter">A</div>
+        <div class="attendance-dots">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+      <h1 class="app-title">ATTENDIFY</h1>
+      <p class="app-subtitle">Modern Attendance Management</p>
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Initializing your attendance system...</p>
     </div>
   </div>
   
